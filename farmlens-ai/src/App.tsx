@@ -10,13 +10,17 @@ import MedicineDashboard from "./pages/MedicineDashboard";
 import AIAssistant from "./pages/AIAssistant";
 import WeatherDashboard from "./pages/WeatherDashboard";
 import AnalyticsDashboard from "./pages/AnalyticsDashboard";
+import LandAnalysis from "./pages/LandAnalysis";
 import NotFound from "./pages/NotFound";
+
+import FallingLeaves from "@/components/ui/FallingLeaves";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
+      <FallingLeaves />
       <Toaster />
       <Sonner />
       <BrowserRouter>
@@ -28,6 +32,7 @@ const App = () => (
           <Route path="/ai-assistant" element={<AIAssistant />} />
           <Route path="/weather" element={<WeatherDashboard />} />
           <Route path="/analytics" element={<AnalyticsDashboard />} />
+          <Route path="/land-analysis" element={<LandAnalysis />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
