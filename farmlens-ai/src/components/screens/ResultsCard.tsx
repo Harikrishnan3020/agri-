@@ -11,6 +11,7 @@ import { translations, LanguageCode } from "@/data/translations";
 
 interface DiagnosisResult {
   disease: string;
+  crop?: string;
   confidence: number;
   severity: "low" | "medium" | "high";
   treatment: string;
@@ -31,33 +32,33 @@ interface ResultsCardProps {
   className?: string;
 }
 
-const severityConfig = {
-  low: {
-    color: "text-teal-600",
-    bg: "bg-teal-50",
-    border: "border-teal-200",
-    icon: Info,
-    label: "Low Risk",
-  },
-  medium: {
-    color: "text-amber-600",
-    bg: "bg-amber-50",
-    border: "border-amber-200",
-    icon: AlertTriangle,
-    label: "Medium Risk",
-  },
-  high: {
-    color: "text-red-600",
-    bg: "bg-red-50",
-    border: "border-red-200",
-    icon: AlertTriangle,
-    label: "High Risk",
-  },
-};
-
 const ResultsCard = ({ result, imageUrl, onTreatmentClick, onShareClick, className }: ResultsCardProps) => {
   const { selectedLanguage } = useAppStore();
   const t = translations[selectedLanguage as LanguageCode] || translations.en;
+
+  const severityConfig = {
+    low: {
+      color: "text-teal-600",
+      bg: "bg-teal-50",
+      border: "border-teal-200",
+      icon: Info,
+      label: t.severityLow,
+    },
+    medium: {
+      color: "text-amber-600",
+      bg: "bg-amber-50",
+      border: "border-amber-200",
+      icon: AlertTriangle,
+      label: t.severityMedium,
+    },
+    high: {
+      color: "text-red-600",
+      bg: "bg-red-50",
+      border: "border-red-200",
+      icon: AlertTriangle,
+      label: t.severityHigh,
+    },
+  };
 
   const severity = severityConfig[result.severity];
   const SeverityIcon = severity.icon;
@@ -84,7 +85,7 @@ const ResultsCard = ({ result, imageUrl, onTreatmentClick, onShareClick, classNa
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
           <div className="absolute bottom-3 left-3 text-white text-xs font-medium px-2 py-1 bg-black/30 backdrop-blur-sm rounded-lg border border-white/20">
-            Scanned Image
+            {t.scannedImage}
           </div>
         </motion.div>
       )}
@@ -146,7 +147,7 @@ const ResultsCard = ({ result, imageUrl, onTreatmentClick, onShareClick, classNa
         transition={{ delay: 0.4 }}
         className="mb-6"
       >
-        <AccuracyMeter value={result.confidence} size="lg" />
+        <AccuracyMeter value={result.confidence} label={t.confidence} size="lg" />
       </motion.div>
 
       {/* Treatment Recommendation */}
@@ -161,7 +162,7 @@ const ResultsCard = ({ result, imageUrl, onTreatmentClick, onShareClick, classNa
       >
         <div className="flex items-center gap-2 mb-2">
           <CheckCircle2 className={cn("w-4 h-4", result.severity === "high" ? "text-red-600" : "text-primary")} />
-          <span className="text-sm font-semibold text-foreground">Recommended Treatment</span>
+          <span className="text-sm font-semibold text-foreground">{t.recommendedTreatment}</span>
         </div>
         <p className={cn("text-sm", result.severity === "high" ? "text-red-700 font-medium" : "text-muted-foreground")}>
           {result.treatment}
@@ -178,7 +179,7 @@ const ResultsCard = ({ result, imageUrl, onTreatmentClick, onShareClick, classNa
         >
           <div className="flex items-center gap-1">
             <Droplets className="w-4 h-4 text-teal-500" />
-            <span>{result.weather.humidity}% humidity</span>
+            <span>{result.weather.humidity}% {t.humidity}</span>
           </div>
           <div className="flex items-center gap-1">
             <ThermometerSun className="w-4 h-4 text-amber-500" />
@@ -234,14 +235,14 @@ const ResultsCard = ({ result, imageUrl, onTreatmentClick, onShareClick, classNa
           onClick={onTreatmentClick}
           className="flex-1 h-12 rounded-xl bg-primary-gradient text-primary-foreground font-semibold shadow-primary-glow"
         >
-          Buy Medicines
+          {t.buyMedicines}
         </Button>
         <Button
           onClick={onShareClick}
           variant="outline"
           className="h-12 px-4 rounded-xl border-2"
         >
-          Share Report
+          {t.shareReport}
         </Button>
       </motion.div>
     </GlassCard>
