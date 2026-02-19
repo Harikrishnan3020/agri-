@@ -7,10 +7,19 @@ import { BottomNav } from "@/components/ui/BottomNav";
 import { WhatsAppFAB } from "@/components/ui/WhatsAppFAB";
 import { FloatingParticles } from "@/components/ui/FloatingParticles";
 import { ConfettiCanvas } from "@/components/ui/ConfettiCanvas";
-import { HeroSection } from "@/components/screens/HeroSection";
+import HeroSection from "@/components/screens/HeroSection";
 import { ResultsCard, DiagnosisResult } from "@/components/screens/ResultsCard";
 import { MarketplaceSection, MarketplaceListing } from "@/components/screens/Marketplace";
 import { Leaderboard, LeaderboardEntry } from "@/components/screens/Leaderboard";
+
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { Bell, Info, Calendar } from "lucide-react";
 
 import { PremiumPaywall } from "@/components/screens/PremiumPaywall";
 import { ProfileSection } from "@/components/screens/ProfileSection";
@@ -83,12 +92,96 @@ const sampleListings: MarketplaceListing[] = [
 
 const Index = () => {
   const navigate = useNavigate();
-  const { activeTab, setActiveTab, showPremiumPaywall, setShowPremiumPaywall, isPremium, selectedLanguage, isAuthenticated, leaderboard } = useAppStore();
+  const { activeTab, setActiveTab, showPremiumPaywall, setShowPremiumPaywall, isPremium, selectedLanguage, isAuthenticated, leaderboard, user, incrementScanCount, addScanRecord } = useAppStore();
   const t = translations[selectedLanguage as LanguageCode] || translations.en;
 
   const [showResults, setShowResults] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const [diagnosisResult, setDiagnosisResult] = useState<DiagnosisResult>(sampleDiagnosis); // Default to sample
+
+  // Dynamic Seasonal Advice
+  // Dynamic Seasonal Advice
+  const getSeasonalAdvice = () => {
+    const month = new Date().getMonth(); // 0-11
+
+    const adviceMap = [
+      { // January
+        title: "January Crop Alert",
+        desc: "High risk of Late Blight in Potatoes due to low temps.",
+        detail: "Spray Mancozeb at 2g/L water. Protect seedlings from frost.",
+        crop: "Potato & Wheat"
+      },
+      { // February
+        title: "February Protection",
+        desc: "Watch for Yellow Rust in Wheat as temperature rises.",
+        detail: "Apply Propiconazole 25 EC if yellow streaks appear.",
+        crop: "Wheat"
+      },
+      { // March
+        title: "March Harvest Prep",
+        desc: "Powdery Mildew risk in Mango and seasonal vegetables.",
+        detail: "Sulfur dusting (25kg/ha) helps control mildew.",
+        crop: "Mango & Vegetables"
+      },
+      { // April
+        title: "April Sowing Guide",
+        desc: "Prepare for Zaid crops. Pest alert: Aphids on new shoots.",
+        detail: "Use Neem oil spray for early pest control.",
+        crop: "Cucurbits & Pulses"
+      },
+      { // May
+        title: "May Irrigation Alert",
+        desc: "Peak heat. High evaporation. Risk of spider mites.",
+        detail: "Increase irrigation frequency. Mulch soil to retain water.",
+        crop: "Summer Vegetables"
+      },
+      { // June
+        title: "Monsoon Prep",
+        desc: "Kharif sowing begins. Treat seeds before sowing.",
+        detail: "Seed treatment with Carbendazim prevents fungal rot.",
+        crop: "Paddy (Rice)"
+      },
+      { // July
+        title: "July Crop Care",
+        desc: "Blast disease risk in Paddy due to high humidity.",
+        detail: "Maintain water growing level. Apply Tricyclazole if spots seen.",
+        crop: "Paddy (Rice)"
+      },
+      { // August
+        title: "August Pest Watch",
+        desc: "Stem Borer attack potential in growing paddy fields.",
+        detail: "Install pheromone traps. Apply Chlorpyriphos if needed.",
+        crop: "Paddy & Maize"
+      },
+      { // September
+        title: "September Alert",
+        desc: "End of monsoon. Watch for False Smut in paddy.",
+        detail: "Drain excess water. Spray Copper Hydroxide.",
+        crop: "Paddy (Rice)"
+      },
+      { // October
+        title: "Rabi Pre-Sowing",
+        desc: "Prepare for Mustard sowing. Soil moisture conservation.",
+        detail: "Test soil health. Treat Mustard seeds for White Rust.",
+        crop: "Mustard"
+      },
+      { // November
+        title: "November Sowing",
+        desc: "Ideal time for Wheat sowing. Risk of termite attack.",
+        detail: "Chlorpyriphos soil treatment before sowing.",
+        crop: "Wheat"
+      },
+      { // December
+        title: "December Frost",
+        desc: "Frost warning for potato and young mustard crop.",
+        detail: "Light irrigation at night prevents frost damage.",
+        crop: "Potato & Mustard"
+      }
+    ];
+
+    return adviceMap[month] || adviceMap[0];
+  };
+  const seasonalAdvice = getSeasonalAdvice();
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -99,6 +192,7 @@ const Index = () => {
   const [autoStartCamera, setAutoStartCamera] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [scannedImage, setScannedImage] = useState<string | null>(null);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
 
   const handleScanClick = async (file?: File) => {
     // Check for API key before starting
@@ -119,6 +213,15 @@ const Index = () => {
 
         if (result) {
           setDiagnosisResult(result);
+          // Save real scan record to store
+          addScanRecord({
+            disease: result.disease,
+            crop: result.crop || "Unknown Crop",
+            severity: result.severity as "low" | "medium" | "high",
+            confidence: result.confidence,
+            isHealthy: result.disease.toLowerCase().includes("healthy"),
+          });
+          incrementScanCount();
         } else {
           // No result returned
           console.error("Analysis failed");
@@ -166,81 +269,65 @@ const Index = () => {
 
                 {/* Quick Access Feature Cards */}
                 <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 }}
-                  className="px-4 pb-6 space-y-3"
+                  initial="hidden"
+                  animate="visible"
+                  variants={{
+                    hidden: { opacity: 0 },
+                    visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
+                  }}
+                  className="px-4 pb-8 space-y-4"
                 >
-                  <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide px-1">Quick Access</h3>
+                  <div className="flex items-center gap-2 px-1">
+                    <div className="w-1 h-4 rounded-full bg-emerald-400" style={{ boxShadow: "0 0 8px rgba(16,185,129,0.8)" }} />
+                    <h3 className="text-xs font-bold text-emerald-400/70 uppercase tracking-widest">{t.quickAccess}</h3>
+                  </div>
 
                   <div className="grid grid-cols-2 gap-3">
-                    {/* AI Assistant Card */}
-                    <motion.button
-                      onClick={() => navigate("/ai-assistant")}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      className="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl p-4 text-white shadow-lg hover:shadow-xl transition-all text-left relative overflow-hidden"
-                    >
-                      <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full blur-2xl"></div>
-                      <div className="relative">
-                        <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center mb-3 border border-white/30">
-                          <span className="text-2xl">🤖</span>
+                    {[
+                      { label: t.qaAILabel, desc: t.qaAIDesc, emoji: "🤖", route: "/ai-assistant", from: "rgba(16,185,129,0.15)", to: "rgba(5,150,105,0.08)", border: "rgba(16,185,129,0.25)", glow: "rgba(16,185,129,0.15)" },
+                      { label: t.qaWeatherLabel, desc: t.qaWeatherDesc, emoji: "🌤️", route: "/weather", from: "rgba(59,130,246,0.15)", to: "rgba(6,182,212,0.08)", border: "rgba(59,130,246,0.25)", glow: "rgba(59,130,246,0.15)" },
+                      { label: t.qaAnalyticsLabel, desc: t.qaAnalyticsDesc, emoji: "📊", route: "/analytics", from: "rgba(139,92,246,0.15)", to: "rgba(217,70,239,0.08)", border: "rgba(139,92,246,0.25)", glow: "rgba(139,92,246,0.15)" },
+                      { label: t.qaMedicinesLabel, desc: t.qaMedicinesDesc, emoji: "💊", route: "/medicine", from: "rgba(236,72,153,0.15)", to: "rgba(244,63,94,0.08)", border: "rgba(236,72,153,0.25)", glow: "rgba(236,72,153,0.15)" },
+                      { label: "Land Analysis", desc: "Soil & Crop Insights", emoji: "🏞️", route: "/land-analysis", from: "rgba(245,158,11,0.15)", to: "rgba(217,119,6,0.08)", border: "rgba(245,158,11,0.25)", glow: "rgba(245,158,11,0.15)" },
+                    ].map((card, i) => (
+                      <motion.button
+                        key={card.label}
+                        onClick={() => navigate(card.route)}
+                        variants={{ hidden: { opacity: 0, y: 20, scale: 0.9 }, visible: { opacity: 1, y: 0, scale: 1 } }}
+                        whileHover={{ scale: 1.04, y: -3 }}
+                        whileTap={{ scale: 0.97 }}
+                        className="relative rounded-2xl p-4 text-left overflow-hidden group border backdrop-blur-sm"
+                        style={{
+                          background: `linear-gradient(135deg, ${card.from} 0%, ${card.to} 100%)`,
+                          borderColor: card.border,
+                        }}
+                      >
+                        {/* Hover glow */}
+                        <div
+                          className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl"
+                          style={{ boxShadow: `inset 0 0 30px ${card.glow}` }}
+                        />
+                        {/* Top-right orb */}
+                        <motion.div
+                          className="absolute -top-4 -right-4 w-16 h-16 rounded-full opacity-30 group-hover:opacity-60 transition-opacity"
+                          style={{ background: `radial-gradient(circle, ${card.border} 0%, transparent 70%)`, filter: "blur(8px)" }}
+                          animate={{ scale: [1, 1.2, 1] }}
+                          transition={{ duration: 3 + i * 0.5, repeat: Infinity }}
+                        />
+                        <div className="relative">
+                          <motion.div
+                            className="w-10 h-10 rounded-xl flex items-center justify-center mb-3 border"
+                            style={{ background: card.from, borderColor: card.border }}
+                            whileHover={{ rotate: [0, -5, 5, 0] }}
+                            transition={{ duration: 0.4 }}
+                          >
+                            <span className="text-xl">{card.emoji}</span>
+                          </motion.div>
+                          <h4 className="font-bold text-white text-sm mb-0.5">{card.label}</h4>
+                          <p className="text-[11px] text-white/50">{card.desc}</p>
                         </div>
-                        <h4 className="font-bold mb-1">AI Assistant</h4>
-                        <p className="text-xs opacity-90">Get instant farming advice</p>
-                      </div>
-                    </motion.button>
-
-                    {/* Weather Card */}
-                    <motion.button
-                      onClick={() => navigate("/weather")}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      className="bg-gradient-to-br from-blue-500 to-cyan-600 rounded-2xl p-4 text-white shadow-lg hover:shadow-xl transition-all text-left relative overflow-hidden"
-                    >
-                      <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full blur-2xl"></div>
-                      <div className="relative">
-                        <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center mb-3 border border-white/30">
-                          <span className="text-2xl">🌤️</span>
-                        </div>
-                        <h4 className="font-bold mb-1">Weather</h4>
-                        <p className="text-xs opacity-90">7-day forecast & tips</p>
-                      </div>
-                    </motion.button>
-
-                    {/* Analytics Card */}
-                    <motion.button
-                      onClick={() => navigate("/analytics")}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      className="bg-gradient-to-br from-purple-500 to-fuchsia-600 rounded-2xl p-4 text-white shadow-lg hover:shadow-xl transition-all text-left relative overflow-hidden"
-                    >
-                      <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full blur-2xl"></div>
-                      <div className="relative">
-                        <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center mb-3 border border-white/30">
-                          <span className="text-2xl">📊</span>
-                        </div>
-                        <h4 className="font-bold mb-1">Analytics</h4>
-                        <p className="text-xs opacity-90">Track your progress</p>
-                      </div>
-                    </motion.button>
-
-                    {/* Medicines Card */}
-                    <motion.button
-                      onClick={() => navigate("/medicine")}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      className="bg-gradient-to-br from-pink-500 to-rose-600 rounded-2xl p-4 text-white shadow-lg hover:shadow-xl transition-all text-left relative overflow-hidden"
-                    >
-                      <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full blur-2xl"></div>
-                      <div className="relative">
-                        <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center mb-3 border border-white/30">
-                          <span className="text-2xl">💊</span>
-                        </div>
-                        <h4 className="font-bold mb-1">Medicines</h4>
-                        <p className="text-xs opacity-90">Browse treatments</p>
-                      </div>
-                    </motion.button>
+                      </motion.button>
+                    ))}
                   </div>
                 </motion.div>
 
@@ -264,37 +351,118 @@ const Index = () => {
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
-                      className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/80 backdrop-blur-md"
+                      className="fixed inset-0 z-50 flex flex-col items-center justify-center backdrop-blur-xl"
+                      style={{ background: "rgba(5,20,10,0.92)" }}
                     >
-                      <div className="w-24 h-24 relative">
-                        {/* Show the uploaded image if available */}
-                        {scannedImage && (
-                          <motion.img
-                            src={scannedImage}
-                            className="absolute inset-0 w-full h-full object-cover rounded-full opacity-50"
-                            initial={{ scale: 0.8, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 0.5 }}
-                          />
-                        )}
+                      {/* Background glow */}
+                      <motion.div
+                        className="absolute inset-0 pointer-events-none"
+                        animate={{ opacity: [0.3, 0.6, 0.3] }}
+                        transition={{ duration: 2, repeat: Infinity }}
+                        style={{ background: "radial-gradient(ellipse 60% 50% at 50% 50%, rgba(16,185,129,0.15) 0%, transparent 70%)" }}
+                      />
+
+                      {/* Spinner */}
+                      <div className="relative w-32 h-32 flex items-center justify-center">
+                        {/* Outer pulse rings */}
                         <motion.div
-                          className="absolute inset-0 border-4 border-emerald-500/30 rounded-full"
-                          animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0, 0.5] }}
-                          transition={{ duration: 1.5, repeat: Infinity }}
+                          className="absolute inset-0 rounded-full border-2 border-emerald-500/30"
+                          animate={{ scale: [1, 1.5, 1], opacity: [0.6, 0, 0.6] }}
+                          transition={{ duration: 2, repeat: Infinity }}
                         />
                         <motion.div
-                          className="absolute inset-0 border-t-4 border-emerald-500 rounded-full"
+                          className="absolute inset-0 rounded-full border-2 border-emerald-400/20"
+                          animate={{ scale: [1, 1.9, 1], opacity: [0.4, 0, 0.4] }}
+                          transition={{ duration: 2, repeat: Infinity, delay: 0.4 }}
+                        />
+                        {/* Spinning arc */}
+                        <motion.div
+                          className="absolute inset-4 rounded-full border-t-[3px] border-r-[3px] border-emerald-400"
                           animate={{ rotate: 360 }}
                           transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
                         />
+                        {/* Counter arc */}
+                        <motion.div
+                          className="absolute inset-6 rounded-full border-b-[3px] border-l-[3px] border-emerald-300/60"
+                          animate={{ rotate: -360 }}
+                          transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                        />
+                        {/* Center image or icon */}
+                        {scannedImage ? (
+                          <motion.img
+                            src={scannedImage}
+                            className="w-12 h-12 rounded-full object-cover border-2 border-emerald-500/50"
+                            initial={{ scale: 0.5, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                          />
+                        ) : (
+                          <motion.div
+                            className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center border border-emerald-500/30"
+                            animate={{ scale: [1, 1.1, 1] }}
+                            transition={{ duration: 1.5, repeat: Infinity }}
+                          >
+                            <span className="text-2xl">🌿</span>
+                          </motion.div>
+                        )}
                       </div>
+
                       <motion.h3
-                        initial={{ opacity: 0, y: 10 }}
+                        initial={{ opacity: 0, y: 12 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="mt-6 text-xl font-bold text-white tracking-wide"
+                        transition={{ delay: 0.2 }}
+                        className="mt-8 text-2xl font-extrabold text-white tracking-wide"
                       >
-                        Analyzing Crop Health...
+                        {t.analyzingTitle}
                       </motion.h3>
-                      <p className="text-emerald-400 mt-2 text-sm font-mono">Running Neural-Agri™ Diagnosis</p>
+
+                      <motion.p
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.4 }}
+                        className="mt-2 text-sm font-mono text-emerald-400"
+                      >
+                        {t.analyzingSubtitle}
+                      </motion.p>
+
+                      {/* Progress bar */}
+                      <motion.div
+                        className="mt-6 w-48 h-1 rounded-full bg-white/10 overflow-hidden"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.5 }}
+                      >
+                        <motion.div
+                          className="h-full rounded-full"
+                          style={{ background: "linear-gradient(90deg, #10b981, #34d399)" }}
+                          animate={{ width: ["0%", "90%"] }}
+                          transition={{ duration: 4, ease: "easeOut" }}
+                        />
+                      </motion.div>
+
+                      {/* Steps */}
+                      <motion.div
+                        className="mt-6 flex flex-col gap-2 items-start"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.6 }}
+                      >
+                        {[t.stepPreprocess, t.stepDetect, t.stepTreatment].map((step, i) => (
+                          <motion.div
+                            key={step}
+                            className="flex items-center gap-2 text-xs"
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 0.8 + i * 0.6 }}
+                          >
+                            <motion.div
+                              className="w-1.5 h-1.5 rounded-full bg-emerald-400"
+                              animate={{ opacity: [0.3, 1, 0.3] }}
+                              transition={{ duration: 1, repeat: Infinity, delay: i * 0.3 }}
+                            />
+                            <span className="text-emerald-300/70">{step}</span>
+                          </motion.div>
+                        ))}
+                      </motion.div>
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -361,9 +529,9 @@ const Index = () => {
                     <span className="text-lg">💊</span>
                   </div>
                   <div>
-                    <h4 className="text-sm font-semibold text-emerald-800">Recommended for Your Crop</h4>
+                    <h4 className="text-sm font-semibold text-emerald-800">{t.recommendedForCrop}</h4>
                     <p className="text-xs text-emerald-600 mt-0.5">
-                      Based on your diagnosis of <strong>{diagnosisResult.disease}</strong>, we found these supplies for you.
+                      {t.recommendedDesc} <strong>{diagnosisResult.disease}</strong>, {t.recommendedDesc2}
                     </p>
                   </div>
                 </div>
@@ -422,7 +590,7 @@ const Index = () => {
   };
 
   return (
-    <div className="relative min-h-screen bg-hero-gradient overflow-x-hidden">
+    <div className="relative min-h-screen overflow-x-hidden" style={{ background: "linear-gradient(160deg, #0a1a0f 0%, #0d2318 40%, #071510 100%)" }}>
       {/* Floating particles background */}
       <FloatingParticles count={10} />
 
@@ -431,10 +599,54 @@ const Index = () => {
 
       {/* Header */}
       <Header
-        userName="Ravi"
+        userName={user?.name || "Farmer"}
         isPremium={isPremium}
         onSettingsClick={() => setShowPremiumPaywall(true)}
+        onNotificationsClick={() => setIsNotificationsOpen(true)}
       />
+
+      <Sheet open={isNotificationsOpen} onOpenChange={setIsNotificationsOpen}>
+        <SheetContent side="right" className="w-[85vw] sm:max-w-md overflow-y-auto">
+          <SheetHeader className="mt-4 mb-6">
+            <SheetTitle className="text-2xl font-bold text-left">{t.notifTitle}</SheetTitle>
+            <SheetDescription className="text-left">
+              {t.notifSubtitle}
+            </SheetDescription>
+          </SheetHeader>
+
+          <div className="space-y-4">
+            {/* Dynamic Seasonal Notification */}
+            <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-100 relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500" />
+              <div className="flex gap-3">
+                <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                  <Bell className="w-5 h-5 text-emerald-600" />
+                </div>
+                <div>
+                  <h4 className="font-semibold text-gray-900">{seasonalAdvice.title}</h4>
+                  <p className="text-sm text-gray-800 font-medium mt-1">Focus: {seasonalAdvice.crop}</p>
+                  <p className="text-sm text-gray-600 mt-1">{seasonalAdvice.desc}</p>
+                  <p className="text-xs text-emerald-700 mt-2 bg-emerald-200/50 p-1.5 rounded-lg">{seasonalAdvice.detail}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-4 bg-amber-50 rounded-xl border border-amber-100 relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-1 h-full bg-amber-500" />
+              <div className="flex gap-3">
+                <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
+                  <Calendar className="w-5 h-5 text-amber-600" />
+                </div>
+                <div>
+                  <h4 className="font-semibold text-gray-900">{t.notif2Title}</h4>
+                  <p className="text-sm text-gray-600 mt-1">{t.notif2Desc}</p>
+                  <span className="text-xs text-gray-400 mt-2 block">{t.hourAgo}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
 
       {/* Main Content */}
       <main className="pb-safe min-h-[calc(100vh-4rem)]">
@@ -446,6 +658,19 @@ const Index = () => {
 
       {/* WhatsApp FAB */}
       <WhatsAppFAB />
+
+      {/* Land Analysis FAB - Visible on all tabs */}
+      <motion.button
+        onClick={() => navigate("/land-analysis")}
+        initial={{ scale: 0 }}
+        animate={{ scale: 1 }}
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.9 }}
+        className="fixed bottom-20 left-4 z-50 w-12 h-12 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 shadow-lg shadow-amber-900/30 flex items-center justify-center text-white"
+        style={{ boxShadow: "0 0 15px rgba(245,158,11,0.5)" }}
+      >
+        <span className="text-xl">🏞️</span>
+      </motion.button>
 
       {/* Premium Paywall Modal */}
       <PremiumPaywall
