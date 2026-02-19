@@ -15,9 +15,20 @@ import {
     TrendingUp,
     MapPin,
     Star,
+    Sparkles,
+    Filter,
+    Search,
     Package,
+    CreditCard,
+    Smartphone,
+    Landmark,
+    ChevronRight,
+    X,
+    Check,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { useAppStore } from "@/store/useAppStore";
 import {
@@ -38,6 +49,31 @@ const MedicineDashboard = () => {
 
     const [selectedMedicine, setSelectedMedicine] = useState<PlantMedicine | null>(null);
     const [favorites, setFavorites] = useState<string[]>([]);
+    const [cart, setCart] = useState<PlantMedicine[]>([]);
+    const [paymentMedicine, setPaymentMedicine] = useState<PlantMedicine | null>(null);
+    const [paymentStep, setPaymentStep] = useState<'summary' | 'method' | 'processing' | 'success'>('summary');
+    const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'upi' | 'card' | 'netbanking'>('upi');
+    const [upiId, setUpiId] = useState('');
+    const [isProcessing, setIsProcessing] = useState(false);
+
+    const openPayment = (medicine: PlantMedicine) => {
+        setPaymentMedicine(medicine);
+        setPaymentStep('summary');
+        setSelectedMedicine(null);
+    };
+
+    const handlePayment = async () => {
+        setPaymentStep('processing');
+        setIsProcessing(true);
+        // Simulate payment processing
+        await new Promise(r => setTimeout(r, 2500));
+        setIsProcessing(false);
+        setPaymentStep('success');
+        setCart(prev => [...prev, paymentMedicine!]);
+        setTimeout(() => {
+            setPaymentMedicine(null);
+        }, 3000);
+    };
 
     // Filter medicines based on disease if provided, otherwise show all
     const medicines = useMemo(() => {
@@ -76,185 +112,187 @@ const MedicineDashboard = () => {
         }
     };
 
-    return (
-        <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-teal-50">
-            {/* Header */}
-            <motion.header
-                initial={{ y: -20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                className="sticky top-0 z-40 bg-white/80 backdrop-blur-lg border-b border-gray-200 shadow-sm"
-            >
-                <div className="px-4 py-4 flex items-center gap-3">
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => navigate("/dashboard")}
-                        className="rounded-full"
-                    >
-                        <ArrowLeft className="w-5 h-5" />
-                    </Button>
-                    <div className="flex-1">
-                        <h1 className="text-lg font-bold text-gray-900">Medicine Dashboard</h1>
-                        <p className="text-xs text-gray-500">Treatment for {disease}</p>
-                    </div>
-                    <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center">
-                        <span className="text-lg">💊</span>
-                    </div>
-                </div>
-            </motion.header>
+    const [searchQuery, setSearchQuery] = useState("");
+    const [activeFilter, setActiveFilter] = useState("all");
 
-            {/* Disease Info Banner */}
-            <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="px-4 pt-4 pb-2"
-            >
-                <div className="bg-gradient-to-r from-emerald-500 to-teal-600 rounded-2xl p-4 text-white shadow-lg">
-                    <div className="flex items-start gap-3">
-                        <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center flex-shrink-0">
-                            <Leaf className="w-6 h-6" />
-                        </div>
-                        <div className="flex-1">
-                            <h3 className="font-bold text-lg mb-1">Recommended Medicines</h3>
-                            <p className="text-sm text-emerald-50 opacity-90">
-                                Based on your diagnosis of <span className="font-semibold">{disease}</span>, we've curated the best treatment options available near you.
-                            </p>
+    // Filter medicines based on disease if provided, otherwise show all
+    const filteredMedicines = useMemo(() => {
+        let items = medicines;
+
+        if (searchQuery) {
+            items = items.filter(m =>
+                m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                m.description.toLowerCase().includes(searchQuery.toLowerCase())
+            );
+        }
+
+        if (activeFilter !== "all") {
+            items = items.filter(m => m.category === activeFilter);
+        }
+
+        return items;
+    }, [medicines, searchQuery, activeFilter]);
+
+    const categories = ["all", "fungicide", "pesticide", "herbicide", "fertilizer", "organic"];
+
+    return (
+        <div className="min-h-screen bg-gray-50/50">
+            {/* Professional Header with Pattern */}
+            <div className="bg-emerald-900 pb-24 relative overflow-hidden">
+                <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
+                <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+                <div className="absolute bottom-0 left-0 w-64 h-64 bg-teal-500/20 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2"></div>
+
+                <motion.header
+                    initial={{ y: -20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    className="relative z-10 px-4 py-6"
+                >
+                    <div className="flex items-center gap-3 mb-6">
+                        <Button
+                            variant="secondary"
+                            size="icon"
+                            onClick={() => navigate("/dashboard")}
+                            className="rounded-full bg-white/10 hover:bg-white/20 text-white border-0"
+                        >
+                            <ArrowLeft className="w-5 h-5" />
+                        </Button>
+                        <h1 className="text-xl font-bold text-white flex-1 text-center pr-10">Pharmacy</h1>
+                        <Button variant="secondary" size="icon" className="rounded-full bg-white/10 hover:bg-white/20 text-white border-0 relative">
+                            <ShoppingCart className="w-5 h-5" />
+                            {cart.length > 0 && (
+                                <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full border-2 border-emerald-900 text-[10px] font-bold text-white flex items-center justify-center">{cart.length}</span>
+                            )}
+                        </Button>
+                    </div>
+
+                    <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/10">
+                        <div className="flex items-start gap-4">
+                            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-400 flex items-center justify-center flex-shrink-0 shadow-lg">
+                                <Leaf className="w-6 h-6 text-white" />
+                            </div>
+                            <div>
+                                <h2 className="text-white font-bold text-lg">Treatment Plan</h2>
+                                <p className="text-emerald-100 text-sm leading-relaxed">
+                                    Recommended solutions for <span className="font-semibold text-white">{disease}</span>.
+                                    <br />Based on your crop analysis.
+                                </p>
+                            </div>
                         </div>
                     </div>
+                </motion.header>
+            </div>
+
+            {/* Filter & Search Section - Sticky */}
+            <div className="sticky top-0 z-30 bg-gray-50/95 backdrop-blur-md border-b border-gray-200 -mt-6 rounded-t-3xl shadow-sm px-4 py-4 space-y-3">
+                <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <Input
+                        placeholder="Search medicines..."
+                        className="pl-9 bg-white border-gray-200 focus:border-emerald-500 rounded-xl"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                    />
                 </div>
-            </motion.div>
+
+                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                    {categories.map(cat => (
+                        <button
+                            key={cat}
+                            onClick={() => setActiveFilter(cat)}
+                            className={`px-4 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all ${activeFilter === cat
+                                ? "bg-emerald-600 text-white shadow-md shadow-emerald-200"
+                                : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
+                                }`}
+                        >
+                            {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                        </button>
+                    ))}
+                </div>
+            </div>
 
             {/* Medicine Grid */}
-            <div className="px-4 py-4 pb-24 space-y-4">
-                {medicines.map((medicine, index) => (
+            <div className="px-4 py-6 pb-24 space-y-4">
+                {filteredMedicines.map((medicine, index) => (
                     <motion.div
                         key={medicine.id}
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.1 }}
+                        transition={{ delay: index * 0.05 }}
                     >
-                        <GlassCard
-                            variant="default"
-                            className="overflow-hidden hover:shadow-xl transition-all duration-300"
-                        >
-                            {/* Medicine Header */}
-                            <div className="p-4 pb-3 border-b border-gray-100">
-                                <div className="flex items-start justify-between mb-3">
-                                    <div className="flex-1">
-                                        <h3 className="text-lg font-bold text-gray-900 mb-1">
-                                            {medicine.name}
-                                        </h3>
-                                        <div className="flex items-center gap-2 flex-wrap">
-                                            <span
-                                                className={`text-xs px-2 py-1 rounded-full font-medium border ${getMedicineTypeColor(
-                                                    medicine.category
-                                                )}`}
-                                            >
+                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden group">
+                            <div className="p-4">
+                                <div className="flex justify-between items-start mb-3">
+                                    <div>
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <Badge variant="outline" className={`rounded-md px-2 py-0.5 text-[10px] bg-opacity-50 border-0 ${getMedicineTypeColor(medicine.category)}`}>
                                                 {medicine.category.toUpperCase()}
-                                            </span>
+                                            </Badge>
                                             {medicine.inStock ? (
-                                                <span className="text-xs px-2 py-1 rounded-full font-medium border bg-green-50 text-green-700 border-green-200 flex items-center gap-1">
+                                                <span className="flex items-center gap-1 text-[10px] font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">
                                                     <CheckCircle2 className="w-3 h-3" /> In Stock
                                                 </span>
                                             ) : (
-                                                <span className="text-xs px-2 py-1 rounded-full font-medium border bg-red-50 text-red-700 border-red-200">
+                                                <span className="flex items-center gap-1 text-[10px] font-medium text-red-600 bg-red-50 px-2 py-0.5 rounded-md">
                                                     Out of Stock
                                                 </span>
                                             )}
                                         </div>
+                                        <h3 className="text-lg font-bold text-gray-900 leading-tight">
+                                            {medicine.name}
+                                        </h3>
                                     </div>
                                     <button
                                         onClick={() => toggleFavorite(medicine.id)}
-                                        className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+                                        className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center hover:bg-red-50 transition-colors"
                                     >
-                                        <Heart
-                                            className={`w-5 h-5 ${favorites.includes(medicine.id)
-                                                ? "fill-red-500 text-red-500"
-                                                : "text-gray-400"
-                                                }`}
-                                        />
+                                        <Heart className={`w-4 h-4 transition-colors ${favorites.includes(medicine.id) ? "fill-red-500 text-red-500" : "text-gray-400"}`} />
                                     </button>
                                 </div>
 
-                                {/* Rating and Seller Info */}
-                                <div className="flex items-center justify-between text-sm">
-                                    <div className="flex items-center gap-1">
-                                        <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
-                                        <span className="font-semibold text-gray-900">
-                                            {medicine.rating}
-                                        </span>
-                                    </div>
-                                    <div className="flex items-center gap-1 text-gray-600">
-                                        <MapPin className="w-3 h-3" />
-                                        <span className="text-xs">{medicine.distance}</span>
-                                        <span className="text-xs">•</span>
-                                        <span className="text-xs">{medicine.seller}</span>
-                                    </div>
-                                </div>
-                            </div>
+                                <p className="text-sm text-gray-500 line-clamp-2 mb-4 leading-relaxed">
+                                    {medicine.description}
+                                </p>
 
-                            {/* Medicine Details */}
-                            <div className="p-4 space-y-3">
-                                <p className="text-sm text-gray-600">{medicine.description}</p>
-
-                                {/* Quick Info Grid */}
-                                <div className="grid grid-cols-2 gap-3">
-                                    <div className="bg-blue-50 rounded-lg p-3 border border-blue-100">
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <Droplet className="w-4 h-4 text-blue-600" />
-                                            <span className="text-xs font-semibold text-blue-900">
-                                                Dosage
-                                            </span>
+                                <div className="flex items-center justify-between gap-4 py-3 border-t border-gray-50">
+                                    <div className="flex items-center gap-1.5">
+                                        <div className="bg-amber-100 p-1.5 rounded-lg">
+                                            <Star className="w-3.5 h-3.5 text-amber-600 fill-amber-600" />
                                         </div>
-                                        <p className="text-xs text-blue-700">{medicine.dosage}</p>
+                                        <div className="flex flex-col">
+                                            <span className="text-xs font-bold text-gray-900">{medicine.rating}</span>
+                                            <span className="text-[10px] text-gray-500">Rating</span>
+                                        </div>
                                     </div>
-                                    <div className="bg-amber-50 rounded-lg p-3 border border-amber-100">
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <Clock className="w-4 h-4 text-amber-600" />
-                                            <span className="text-xs font-semibold text-amber-900">
-                                                Safety Period
-                                            </span>
+                                    <div className="w-px h-8 bg-gray-100"></div>
+                                    <div className="flex items-center gap-1.5">
+                                        <div className="bg-blue-100 p-1.5 rounded-lg">
+                                            <MapPin className="w-3.5 h-3.5 text-blue-600" />
                                         </div>
-                                        <p className="text-xs text-amber-700">
-                                            {medicine.safetyPeriod}
-                                        </p>
+                                        <div className="flex flex-col">
+                                            <span className="text-xs font-bold text-gray-900">{medicine.distance}</span>
+                                            <span className="text-[10px] text-gray-500">Distance</span>
+                                        </div>
                                     </div>
                                 </div>
 
-                                {/* View Details Button */}
-                                <Button
-                                    variant="outline"
-                                    className="w-full flex items-center justify-between"
-                                    onClick={() => setSelectedMedicine(medicine)}
-                                >
-                                    <span className="flex items-center gap-2">
-                                        <Info className="w-4 h-4" />
-                                        View Full Details
-                                    </span>
-                                    <TrendingUp className="w-4 h-4" />
-                                </Button>
-
-                                {/* Price and Action */}
-                                <div className="flex items-center gap-3 pt-2">
+                                <div className="flex items-center gap-3 mt-4">
                                     <div className="flex-1">
-                                        <div className="text-xs text-gray-500 mb-0.5">Price</div>
-                                        <div className="text-2xl font-bold text-emerald-600">
-                                            ₹{medicine.price}
-                                            <span className="text-sm text-gray-500 font-normal">
-                                                /{medicine.packaging}
-                                            </span>
+                                        <span className="text-xs text-gray-400">Price</span>
+                                        <div className="flex items-baseline gap-1">
+                                            <span className="text-lg font-bold text-emerald-700">₹{medicine.price}</span>
+                                            <span className="text-xs text-gray-500">/{medicine.packaging}</span>
                                         </div>
                                     </div>
                                     <Button
-                                        className="flex-1 h-12 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold rounded-xl shadow-lg shadow-emerald-200"
-                                        disabled={!medicine.inStock}
+                                        onClick={() => setSelectedMedicine(medicine)}
+                                        className="bg-gray-900 hover:bg-black text-white rounded-xl px-5 h-10 shadow-lg shadow-gray-200 transition-transform active:scale-95"
                                     >
-                                        <ShoppingCart className="w-4 h-4 mr-2" />
-                                        Buy Now
+                                        View Details
                                     </Button>
                                 </div>
                             </div>
-                        </GlassCard>
+                        </div>
                     </motion.div>
                 ))}
             </div>
@@ -384,12 +422,223 @@ const MedicineDashboard = () => {
                                             </span>
                                         </div>
                                     </div>
-                                    <Button className="flex-1 h-12 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold rounded-xl">
+                                    <Button
+                                        className="flex-1 h-12 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold rounded-xl"
+                                        onClick={() => openPayment(selectedMedicine!)}
+                                    >
                                         <ShoppingCart className="w-4 h-4 mr-2" />
-                                        Add to Cart
+                                        Add to Cart & Pay
                                     </Button>
                                 </div>
                             </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Payment Gateway Modal */}
+            <AnimatePresence>
+                {paymentMedicine && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm"
+                        onClick={(e) => { if (paymentStep !== 'processing' && paymentStep !== 'success' && e.target === e.currentTarget) setPaymentMedicine(null); }}
+                    >
+                        <motion.div
+                            initial={{ y: "100%", opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            exit={{ y: "100%", opacity: 0 }}
+                            transition={{ type: "spring", damping: 25 }}
+                            className="bg-white rounded-t-3xl sm:rounded-3xl w-full sm:max-w-md max-h-[90vh] overflow-y-auto"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <AnimatePresence mode="wait">
+                                {paymentStep === 'summary' && (
+                                    <motion.div key="summary" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                                        {/* Razorpay-style header */}
+                                        <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-t-3xl sm:rounded-t-3xl px-6 py-5">
+                                            <div className="flex items-center justify-between mb-3">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
+                                                        <CreditCard className="w-4 h-4 text-white" />
+                                                    </div>
+                                                    <span className="text-white font-bold text-lg">AgriYield Pay</span>
+                                                </div>
+                                                <button onClick={() => setPaymentMedicine(null)} className="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center text-white hover:bg-white/20">
+                                                    <X className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                            <p className="text-blue-100 text-xs">Secure Payment Powered by AgriYield</p>
+                                        </div>
+
+                                        <div className="px-6 py-5 space-y-4">
+                                            {/* Order Summary */}
+                                            <div className="bg-gray-50 rounded-2xl p-4">
+                                                <h3 className="text-sm font-bold text-gray-700 mb-3">Order Summary</h3>
+                                                <div className="flex items-start gap-3">
+                                                    <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                                                        <Package className="w-6 h-6 text-emerald-600" />
+                                                    </div>
+                                                    <div className="flex-1">
+                                                        <p className="font-semibold text-gray-900">{paymentMedicine.name}</p>
+                                                        <p className="text-xs text-gray-500">{paymentMedicine.packaging} • {paymentMedicine.category}</p>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <p className="font-bold text-gray-900">₹{paymentMedicine.price}</p>
+                                                    </div>
+                                                </div>
+                                                <div className="border-t mt-3 pt-3 space-y-1">
+                                                    <div className="flex justify-between text-sm text-gray-600">
+                                                        <span>Subtotal</span><span>₹{paymentMedicine.price}</span>
+                                                    </div>
+                                                    <div className="flex justify-between text-sm text-gray-600">
+                                                        <span>Delivery</span><span className="text-green-600">FREE</span>
+                                                    </div>
+                                                    <div className="flex justify-between text-sm text-gray-600">
+                                                        <span>GST (18%)</span><span>₹{Math.round(paymentMedicine.price * 0.18)}</span>
+                                                    </div>
+                                                    <div className="flex justify-between font-bold text-gray-900 pt-1 border-t">
+                                                        <span>Total</span><span className="text-emerald-700">₹{paymentMedicine.price + Math.round(paymentMedicine.price * 0.18)}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Payment Method Selection */}
+                                            <div>
+                                                <h3 className="text-sm font-bold text-gray-700 mb-3">Payment Method</h3>
+                                                <div className="space-y-2">
+                                                    {[
+                                                        { id: 'upi' as const, label: 'UPI', icon: Smartphone, desc: 'Pay via UPI ID or QR', color: 'text-purple-600' },
+                                                        { id: 'card' as const, label: 'Credit / Debit Card', icon: CreditCard, desc: 'Visa, Mastercard, RuPay', color: 'text-blue-600' },
+                                                        { id: 'netbanking' as const, label: 'Net Banking', icon: Landmark, desc: 'All major banks supported', color: 'text-green-600' },
+                                                    ].map(method => (
+                                                        <button
+                                                            key={method.id}
+                                                            onClick={() => setSelectedPaymentMethod(method.id)}
+                                                            className={`w-full flex items-center gap-3 p-3 rounded-xl border-2 transition-all ${selectedPaymentMethod === method.id
+                                                                    ? 'border-blue-500 bg-blue-50'
+                                                                    : 'border-gray-100 bg-white hover:border-gray-200'
+                                                                }`}
+                                                        >
+                                                            <method.icon className={`w-5 h-5 ${method.color}`} />
+                                                            <div className="flex-1 text-left">
+                                                                <p className="text-sm font-semibold text-gray-900">{method.label}</p>
+                                                                <p className="text-xs text-gray-500">{method.desc}</p>
+                                                            </div>
+                                                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${selectedPaymentMethod === method.id ? 'border-blue-500 bg-blue-500' : 'border-gray-300'
+                                                                }`}>
+                                                                {selectedPaymentMethod === method.id && <Check className="w-3 h-3 text-white" />}
+                                                            </div>
+                                                        </button>
+                                                    ))}
+                                                </div>
+
+                                                {selectedPaymentMethod === 'upi' && (
+                                                    <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="mt-3">
+                                                        <Input
+                                                            placeholder="Enter UPI ID (e.g. name@upi)"
+                                                            value={upiId}
+                                                            onChange={(e) => setUpiId(e.target.value)}
+                                                            className="border-gray-200 focus:border-blue-500 rounded-xl"
+                                                        />
+                                                    </motion.div>
+                                                )}
+                                            </div>
+
+                                            <Button
+                                                onClick={() => setPaymentStep('method')}
+                                                className="w-full h-12 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold rounded-xl shadow-lg"
+                                            >
+                                                Continue to Pay ₹{paymentMedicine.price + Math.round(paymentMedicine.price * 0.18)} <ChevronRight className="w-4 h-4 ml-1" />
+                                            </Button>
+
+                                            <p className="text-center text-xs text-gray-400 flex items-center justify-center gap-1.5">
+                                                <Shield className="w-3.5 h-3.5" /> 256-bit SSL secured payment
+                                            </p>
+                                        </div>
+                                    </motion.div>
+                                )}
+
+                                {paymentStep === 'method' && (
+                                    <motion.div key="method" initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}>
+                                        <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-t-3xl sm:rounded-t-3xl px-6 py-5">
+                                            <div className="flex items-center gap-3">
+                                                <button onClick={() => setPaymentStep('summary')} className="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center text-white">
+                                                    <ArrowLeft className="w-4 h-4" />
+                                                </button>
+                                                <span className="text-white font-bold">Confirm Payment</span>
+                                            </div>
+                                        </div>
+                                        <div className="px-6 py-6 space-y-4 text-center">
+                                            <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto">
+                                                {selectedPaymentMethod === 'upi' && <Smartphone className="w-8 h-8 text-purple-600" />}
+                                                {selectedPaymentMethod === 'card' && <CreditCard className="w-8 h-8 text-blue-600" />}
+                                                {selectedPaymentMethod === 'netbanking' && <Landmark className="w-8 h-8 text-green-600" />}
+                                            </div>
+                                            <div>
+                                                <p className="text-2xl font-bold text-gray-900">₹{paymentMedicine.price + Math.round(paymentMedicine.price * 0.18)}</p>
+                                                <p className="text-sm text-gray-500 mt-1">{paymentMedicine.name}</p>
+                                            </div>
+                                            {selectedPaymentMethod === 'upi' && upiId && (
+                                                <div className="bg-purple-50 rounded-xl px-4 py-3">
+                                                    <p className="text-xs text-purple-600 font-medium">Paying to UPI ID</p>
+                                                    <p className="text-sm font-bold text-purple-800">{upiId}</p>
+                                                </div>
+                                            )}
+                                            <Button
+                                                onClick={handlePayment}
+                                                className="w-full h-12 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold rounded-xl"
+                                            >
+                                                Pay Now ₹{paymentMedicine.price + Math.round(paymentMedicine.price * 0.18)}
+                                            </Button>
+                                            <p className="text-xs text-gray-400">By clicking Pay Now, you agree to our Terms & Conditions</p>
+                                        </div>
+                                    </motion.div>
+                                )}
+
+                                {paymentStep === 'processing' && (
+                                    <motion.div key="processing" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="px-6 py-16 text-center">
+                                        <motion.div
+                                            className="w-20 h-20 rounded-full border-4 border-blue-100 border-t-blue-600 mx-auto mb-6"
+                                            animate={{ rotate: 360 }}
+                                            transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                                        />
+                                        <h3 className="text-xl font-bold text-gray-900 mb-2">Processing Payment</h3>
+                                        <p className="text-sm text-gray-500">Please wait, do not close this window...</p>
+                                        <div className="mt-4 flex justify-center gap-2">
+                                            {['Connecting...', 'Verifying...', 'Confirming...'].map((step, i) => (
+                                                <motion.span
+                                                    key={step}
+                                                    className="text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded-full font-medium"
+                                                    animate={{ opacity: [0.4, 1, 0.4] }}
+                                                    transition={{ duration: 1.5, repeat: Infinity, delay: i * 0.5 }}
+                                                >{step}</motion.span>
+                                            ))}
+                                        </div>
+                                    </motion.div>
+                                )}
+
+                                {paymentStep === 'success' && (
+                                    <motion.div key="success" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} className="px-6 py-12 text-center">
+                                        <motion.div
+                                            className="w-24 h-24 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-6"
+                                            animate={{ scale: [1, 1.1, 1] }}
+                                            transition={{ duration: 0.6 }}
+                                        >
+                                            <CheckCircle2 className="w-12 h-12 text-emerald-600" />
+                                        </motion.div>
+                                        <h3 className="text-2xl font-bold text-gray-900 mb-2">Payment Successful! 🎉</h3>
+                                        <p className="text-gray-500 mb-2">₹{paymentMedicine.price + Math.round(paymentMedicine.price * 0.18)} paid successfully</p>
+                                        <p className="text-sm text-gray-400">Order confirmation sent • Delivery in 2-3 days</p>
+                                        <div className="mt-6 bg-emerald-50 rounded-2xl p-4">
+                                            <p className="text-xs text-emerald-700 font-medium">Transaction ID</p>
+                                            <p className="font-mono text-sm font-bold text-emerald-900">AGR{Date.now().toString().slice(-8)}</p>
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
                         </motion.div>
                     </motion.div>
                 )}
