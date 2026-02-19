@@ -25,6 +25,7 @@ export const analyzeCropImage = async (imageFile: File): Promise<DiagnosisResult
       Structure:
       {
         "disease": "Name of the disease (or 'Healthy Crop')",
+        "crop": "Name of the crop plant (e.g. Rice, Tomato, Wheat, Potato)",
         "confidence": 0-100 (number),
         "severity": "low", "medium", or "high" (string),
         "treatment": "Detailed organic and chemical treatment recommendation steps.",
@@ -100,6 +101,7 @@ export const analyzeCropImage = async (imageFile: File): Promise<DiagnosisResult
 
         return {
             disease: data.disease || "Unknown",
+            crop: data.crop || "Unknown Crop",
             confidence: data.confidence || 0,
             severity: (data.severity as "low" | "medium" | "high") || "low",
             treatment: data.treatment || "No treatment suggestions available.",
