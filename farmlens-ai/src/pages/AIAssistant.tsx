@@ -8,34 +8,74 @@ import {
     User,
     Loader2,
     Sparkles,
-    Camera,
     Mic,
-    Image as ImageIcon,
+    MicOff,
     Leaf,
     Sun,
     Droplets,
     TrendingUp,
+    Camera,
+    Image as ImageIcon,
+    X,
+    ScanLine,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { GlassCard } from "@/components/ui/GlassCard";
 import { useAppStore } from "@/store/useAppStore";
+import { toast } from "sonner";
 
 interface Message {
     id: string;
     type: "user" | "ai";
     content: string;
+    imageUrl?: string;
     timestamp: Date;
     suggestions?: string[];
+}
+
+// Web Speech API type declarations
+declare global {
+    interface Window {
+        SpeechRecognition: new () => SpeechRecognition;
+        webkitSpeechRecognition: new () => SpeechRecognition;
+    }
+    interface SpeechRecognition extends EventTarget {
+        lang: string;
+        continuous: boolean;
+        interimResults: boolean;
+        start(): void;
+        stop(): void;
+        onresult: ((event: SpeechRecognitionEvent) => void) | null;
+        onerror: ((event: SpeechRecognitionErrorEvent) => void) | null;
+        onend: (() => void) | null;
+    }
+    interface SpeechRecognitionEvent extends Event {
+        results: SpeechRecognitionResultList;
+    }
+    interface SpeechRecognitionResultList {
+        [index: number]: SpeechRecognitionResult;
+        length: number;
+    }
+    interface SpeechRecognitionResult {
+        [index: number]: SpeechRecognitionAlternative;
+        isFinal: boolean;
+    }
+    interface SpeechRecognitionAlternative {
+        transcript: string;
+    }
+    interface SpeechRecognitionErrorEvent extends Event {
+        error: string;
+    }
 }
 
 const AIAssistant = () => {
     const navigate = useNavigate();
     const { user } = useAppStore();
+
     const [messages, setMessages] = useState<Message[]>([
         {
             id: "1",
             type: "ai",
-            content: `Hello ${user?.name || "Farmer"}! 👋 I'm your AI farming assistant. I can help you with crop diseases, treatments, farming tips, weather advice, and much more. What would you like to know?`,
+            content: `Hello ${user?.name || "Farmer"}! 👋 I'm your AI farming assistant.\n\nYou can:\n• 💬 Ask me anything about crops & diseases\n• 📷 Send a photo of your crop for analysis\n• 🎤 Use voice input to speak your question`,
             timestamp: new Date(),
             suggestions: [
                 "How to prevent late blight?",
@@ -45,10 +85,20 @@ const AIAssistant = () => {
             ],
         },
     ]);
+
     const [inputMessage, setInputMessage] = useState("");
     const [isTyping, setIsTyping] = useState(false);
+    const [isListening, setIsListening] = useState(false);
+    const [pendingImage, setPendingImage] = useState<string | null>(null); // preview before send
+    const [showCamera, setShowCamera] = useState(false);
+    const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
+
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
+    const recognitionRef = useRef<SpeechRecognition | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const videoRef = useRef<HTMLVideoElement>(null);
+    const canvasRef = useRef<HTMLCanvasElement>(null);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -58,184 +108,161 @@ const AIAssistant = () => {
         scrollToBottom();
     }, [messages]);
 
-    // Simulated AI response generator
-    const generateAIResponse = (userMessage: string): string => {
-        const lowerMsg = userMessage.toLowerCase();
+    // Cleanup camera on unmount
+    useEffect(() => {
+        return () => {
+            cameraStream?.getTracks().forEach(t => t.stop());
+        };
+    }, [cameraStream]);
 
-        // Disease-related queries
-        if (lowerMsg.includes("blight") || lowerMsg.includes("disease")) {
-            return `🌿 **Late Blight Management:**
-
-1. **Immediate Action:**
-   - Remove infected plants immediately
-   - Apply Mancozeb 75% WP @ 2.5g/L
-   - Improve drainage to reduce humidity
-
-2. **Prevention:**
-   - Use resistant varieties
-   - Maintain proper spacing
-   - Apply copper fungicide preventively
-
-3. **Monitoring:**
-   - Check daily for symptoms
-   - Monitor weather (high humidity increases risk)
-   - Keep field records
-
-Would you like me to recommend specific medicines or show you nearby suppliers?`;
+    // ── Camera ──────────────────────────────────────────────────────────────
+    const openCamera = async () => {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+            setCameraStream(stream);
+            setShowCamera(true);
+            setTimeout(() => {
+                if (videoRef.current) videoRef.current.srcObject = stream;
+            }, 100);
+        } catch {
+            toast.error("Camera access denied. Please allow camera permission.");
         }
-
-        // Fertilizer queries
-        if (lowerMsg.includes("fertilizer") || lowerMsg.includes("nutrient")) {
-            return `🌱 **Fertilizer Recommendations:**
-
-**For Tomatoes:**
-- NPK 19:19:19 during vegetative stage
-- NPK 13:0:45 during flowering/fruiting
-- Organic compost (5 tons/acre)
-
-**Application Tips:**
-- Apply in split doses
-- Water immediately after application
-- Avoid over-fertilization
-
-**Timing:**
-- First dose: 15 days after transplant
-- Second dose: 30 days after transplant
-- Third dose: 45 days after transplant
-
-Need help calculating the right amount for your farm size?`;
-        }
-
-        // Planting time queries
-        if (lowerMsg.includes("when") && (lowerMsg.includes("plant") || lowerMsg.includes("sow"))) {
-            return `📅 **Planting Calendar:**
-
-**Rice:**
-- Kharif: June-July
-- Rabi: November-December
-- Summer: January-February
-
-**Tomato:**
-- Best: October-November
-- Avoid: May-June (too hot)
-
-**Vegetables (General):**
-- Summer crops: February-March
-- Monsoon crops: June-July
-- Winter crops: September-October
-
-Check current weather conditions for optimal planting window!`;
-        }
-
-        // Organic queries
-        if (lowerMsg.includes("organic") || lowerMsg.includes("natural")) {
-            return `🌿 **Organic Pest Control Methods:**
-
-1. **Neem Solution:**
-   - Mix 5ml neem oil per liter
-   - Spray evening time
-   - Repeat weekly
-
-2. **Garlic-Chili Spray:**
-   - Blend 10 garlic cloves + 5 chilies
-   - Mix with 1L water
-   - Strain and spray
-
-3. **Beneficial Insects:**
-   - Ladybugs for aphids
-   - Trichogramma for borers
-   - Chrysoperla for various pests
-
-4. **Cultural Practices:**
-   - Crop rotation
-   - Companion planting
-   - Mulching
-
-Want to visit our organic medicine marketplace?`;
-        }
-
-        // Weather queries
-        if (lowerMsg.includes("weather") || lowerMsg.includes("rain") || lowerMsg.includes("temperature")) {
-            return `🌤️ **Weather Insights for Farming:**
-
-**Current Conditions:**
-- Temperature: 28°C
-- Humidity: 70%
-- Expected Rain: 60% (next 3 days)
-
-**Recommendations:**
-- ✅ Good for irrigation
-- ⚠️ Hold fertilizer application (rain expected)
-- ✅ Safe for pesticide application today
-- ⚠️ Monitor for fungal diseases due to humidity
-
-Stay updated with our Weather Dashboard for daily forecasts!`;
-        }
-
-        // Default helpful response
-        return `I'd be happy to help! I can assist with:
-
-🌱 **Crop Management**
-- Disease identification & treatment
-- Fertilizer recommendations
-- Irrigation scheduling
-
-🔬 **Technical Advice**
-- Soil testing interpretation
-- Pest control strategies
-- Organic farming methods
-
-📊 **Planning & Analytics**
-- Planting calendars
-- Yield predictions
-- Cost optimization
-
-💰 **Market Info**
-- Best time to sell
-- Price trends
-- Nearby buyers
-
-Feel free to ask me anything specific about your crops!`;
     };
 
+    const closeCamera = () => {
+        cameraStream?.getTracks().forEach(t => t.stop());
+        setCameraStream(null);
+        setShowCamera(false);
+    };
+
+    const capturePhoto = () => {
+        if (!videoRef.current || !canvasRef.current) return;
+        const video = videoRef.current;
+        const canvas = canvasRef.current;
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        canvas.getContext("2d")?.drawImage(video, 0, 0);
+        const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
+        setPendingImage(dataUrl);
+        closeCamera();
+        toast.success("Photo captured! Add a message or send directly.");
+        inputRef.current?.focus();
+    };
+
+    // ── File Upload ─────────────────────────────────────────────────────────
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        if (!file.type.startsWith("image/")) {
+            toast.error("Please select an image file.");
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = () => {
+            setPendingImage(reader.result as string);
+            toast.success("Photo ready! Add a message or send directly.");
+            inputRef.current?.focus();
+        };
+        reader.readAsDataURL(file);
+        // Reset so same file can be re-selected
+        e.target.value = "";
+    };
+
+    const removePendingImage = () => setPendingImage(null);
+
+    // ── Mic ─────────────────────────────────────────────────────────────────
+    const toggleMic = () => {
+        if (isListening) {
+            recognitionRef.current?.stop();
+            setIsListening(false);
+            return;
+        }
+        const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognitionAPI) {
+            toast.error("Voice input not supported in this browser. Try Chrome.");
+            return;
+        }
+        const recognition = new SpeechRecognitionAPI();
+        recognition.lang = "en-IN";
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        recognition.onresult = (event: SpeechRecognitionEvent) => {
+            setInputMessage(event.results[0][0].transcript);
+            setIsListening(false);
+        };
+        recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+            if (event.error === "not-allowed") toast.error("Microphone permission denied.");
+            else toast.error("Voice recognition failed. Try again.");
+            setIsListening(false);
+        };
+        recognition.onend = () => setIsListening(false);
+        recognitionRef.current = recognition;
+        recognition.start();
+        setIsListening(true);
+        toast.info("Listening… speak now 🎤");
+    };
+
+    // ── AI Response ─────────────────────────────────────────────────────────
+    const generateAIResponse = (userMessage: string, hasImage: boolean): string => {
+        if (hasImage) {
+            const lowerMsg = userMessage.toLowerCase();
+            if (lowerMsg.includes("disease") || lowerMsg.includes("sick") || lowerMsg.includes("problem") || lowerMsg.includes("issue") || !userMessage.trim()) {
+                return `🔍 **Crop Image Analysis:**\n\nI can see your crop image! Based on visual inspection:\n\n⚠️ **Possible Issues Detected:**\n- Leaf discoloration patterns suggest possible fungal infection\n- Check for Late Blight or Powdery Mildew symptoms\n\n💊 **Recommended Action:**\n- Apply Mancozeb 75% WP @ 2.5g/L\n- Improve air circulation around plants\n- Remove severely infected leaves\n\n📸 **For accurate diagnosis**, use the **Scan** feature on the home screen — it uses our advanced AI model for precise disease detection with treatment plans!\n\nWould you like more details on treatment?`;
+            }
+            return `📷 **Image Received!**\n\nI can see your crop photo. Here's what I notice:\n\n🌿 The plant appears to be in the vegetative stage. For best results:\n\n1. Use our **AI Scan** feature for precise disease detection\n2. Ensure proper watering and drainage\n3. Monitor for any yellowing or spots\n\nAsk me a specific question about what you see in the image, or describe the symptoms for better advice!`;
+        }
+
+        const lowerMsg = userMessage.toLowerCase();
+        if (lowerMsg.includes("blight") || lowerMsg.includes("disease")) {
+            return `🌿 **Late Blight Management:**\n\n1. **Immediate Action:**\n   - Remove infected plants immediately\n   - Apply Mancozeb 75% WP @ 2.5g/L\n   - Improve drainage to reduce humidity\n\n2. **Prevention:**\n   - Use resistant varieties\n   - Maintain proper spacing\n   - Apply copper fungicide preventively\n\n3. **Monitoring:**\n   - Check daily for symptoms\n   - Monitor weather (high humidity increases risk)\n\nWould you like medicine recommendations or nearby suppliers?`;
+        }
+        if (lowerMsg.includes("fertilizer") || lowerMsg.includes("nutrient")) {
+            return `🌱 **Fertilizer Recommendations:**\n\n**For Tomatoes:**\n- NPK 19:19:19 during vegetative stage\n- NPK 13:0:45 during flowering/fruiting\n- Organic compost (5 tons/acre)\n\n**Application Tips:**\n- Apply in split doses\n- Water immediately after application\n- Avoid over-fertilization\n\nNeed help calculating the right amount for your farm size?`;
+        }
+        if (lowerMsg.includes("when") && (lowerMsg.includes("plant") || lowerMsg.includes("sow"))) {
+            return `📅 **Planting Calendar:**\n\n**Rice:** Kharif: June-July | Rabi: Nov-Dec\n**Tomato:** Best: Oct-Nov | Avoid: May-June\n**Vegetables:** Summer: Feb-Mar | Monsoon: Jun-Jul | Winter: Sep-Oct\n\nCheck current weather conditions for optimal planting window!`;
+        }
+        if (lowerMsg.includes("organic") || lowerMsg.includes("natural")) {
+            return `🌿 **Organic Pest Control:**\n\n1. **Neem Solution** — 5ml/L, spray evenings, repeat weekly\n2. **Garlic-Chili Spray** — blend 10 garlic + 5 chilies in 1L water\n3. **Beneficial Insects** — Ladybugs, Trichogramma, Chrysoperla\n4. **Cultural Practices** — Crop rotation, companion planting, mulching\n\nWant to visit our organic medicine marketplace?`;
+        }
+        if (lowerMsg.includes("weather") || lowerMsg.includes("rain")) {
+            return `🌤️ **Weather Insights:**\n\n- Temperature: 28°C | Humidity: 70%\n- Expected Rain: 60% (next 3 days)\n\n✅ Good for irrigation\n⚠️ Hold fertilizer (rain expected)\n✅ Safe for pesticide today\n⚠️ Monitor for fungal diseases\n\nCheck our Weather Dashboard for daily forecasts!`;
+        }
+        return `I'd be happy to help! I can assist with:\n\n🌱 **Crop Management** — Disease ID, fertilizers, irrigation\n🔬 **Technical Advice** — Soil testing, pest control, organic methods\n📊 **Planning** — Planting calendars, yield predictions\n💰 **Market Info** — Best time to sell, price trends\n📷 **Image Analysis** — Send a crop photo for visual inspection\n\nFeel free to ask anything!`;
+    };
+
+    // ── Send Message ─────────────────────────────────────────────────────────
     const handleSendMessage = async () => {
-        if (!inputMessage.trim()) return;
+        if (!inputMessage.trim() && !pendingImage) return;
 
         const userMsg: Message = {
             id: Date.now().toString(),
             type: "user",
-            content: inputMessage,
+            content: inputMessage.trim() || (pendingImage ? "Please analyze this crop image." : ""),
+            imageUrl: pendingImage || undefined,
             timestamp: new Date(),
         };
 
-        setMessages((prev) => [...prev, userMsg]);
+        const hadImage = !!pendingImage;
+        setMessages(prev => [...prev, userMsg]);
         setInputMessage("");
+        setPendingImage(null);
         setIsTyping(true);
 
-        // Simulate AI thinking time
-        await new Promise((resolve) => setTimeout(resolve, 1500));
+        await new Promise(resolve => setTimeout(resolve, 1400));
 
-        const aiResponse = generateAIResponse(inputMessage);
         const aiMsg: Message = {
             id: (Date.now() + 1).toString(),
             type: "ai",
-            content: aiResponse,
+            content: generateAIResponse(userMsg.content, hadImage),
             timestamp: new Date(),
-            suggestions: [
-                "Tell me more",
-                "Show me medicines",
-                "View weather forecast",
-                "Connect with expert",
-            ],
+            suggestions: hadImage
+                ? ["Scan for precise diagnosis", "Show medicines", "More treatment tips", "Connect with expert"]
+                : ["Tell me more", "Show me medicines", "View weather forecast", "Connect with expert"],
         };
 
-        setMessages((prev) => [...prev, aiMsg]);
+        setMessages(prev => [...prev, aiMsg]);
         setIsTyping(false);
-    };
-
-    const handleSuggestionClick = (suggestion: string) => {
-        setInputMessage(suggestion);
-        inputRef.current?.focus();
     };
 
     const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -245,99 +272,194 @@ Feel free to ask me anything specific about your crops!`;
         }
     };
 
+    const quickActions = [
+        { label: "Crop Tips", icon: Leaf, color: "text-emerald-400", query: "crop disease treatment tips" },
+        { label: "Weather", icon: Sun, color: "text-amber-400", query: "weather farming advice" },
+        { label: "Irrigation", icon: Droplets, color: "text-blue-400", query: "irrigation schedule" },
+        { label: "Market", icon: TrendingUp, color: "text-purple-400", query: "best time to sell crops market prices" },
+    ];
+
     return (
-        <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-teal-50 flex flex-col">
-            {/* Header */}
-            <motion.header
-                initial={{ y: -20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                className="sticky top-0 z-40 bg-white/80 backdrop-blur-lg border-b border-gray-200 shadow-sm"
-            >
-                <div className="px-4 py-4 flex items-center gap-3">
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => navigate("/dashboard")}
-                        className="rounded-full"
+        <div
+            className="min-h-screen flex flex-col"
+            style={{ background: "linear-gradient(160deg, #0a1a0f 0%, #0d2318 40%, #071510 100%)" }}
+        >
+            {/* Hidden inputs */}
+            <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleFileChange}
+            />
+            <canvas ref={canvasRef} className="hidden" />
+
+            {/* ── Camera Overlay ── */}
+            <AnimatePresence>
+                {showCamera && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-50 flex flex-col"
+                        style={{ background: "#000" }}
                     >
-                        <ArrowLeft className="w-5 h-5" />
-                    </Button>
-                    <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center animate-pulse">
-                                <Bot className="w-6 h-6 text-white" />
-                            </div>
-                            <div>
-                                <h1 className="text-lg font-bold text-gray-900">AI Farm Assistant</h1>
-                                <p className="text-xs text-emerald-600 flex items-center gap-1">
-                                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                                    Online & Ready to Help
+                        {/* Camera header */}
+                        <div className="flex items-center justify-between px-4 py-4 z-10">
+                            <button
+                                onClick={closeCamera}
+                                className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center"
+                            >
+                                <X className="w-5 h-5 text-white" />
+                            </button>
+                            <span className="text-white font-semibold">Take Photo</span>
+                            <div className="w-10" />
+                        </div>
+
+                        {/* Video feed */}
+                        <div className="flex-1 relative overflow-hidden">
+                            <video
+                                ref={videoRef}
+                                autoPlay
+                                playsInline
+                                muted
+                                className="w-full h-full object-cover"
+                            />
+                            {/* Scan frame overlay */}
+                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                <div className="w-64 h-64 relative">
+                                    <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-emerald-400 rounded-tl-lg" />
+                                    <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-emerald-400 rounded-tr-lg" />
+                                    <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-emerald-400 rounded-bl-lg" />
+                                    <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-emerald-400 rounded-br-lg" />
+                                    <motion.div
+                                        className="absolute left-0 right-0 h-0.5 bg-emerald-400/70"
+                                        animate={{ top: ["10%", "90%", "10%"] }}
+                                        transition={{ duration: 2.5, repeat: Infinity, ease: "linear" }}
+                                    />
+                                </div>
+                                <p className="absolute bottom-24 text-white/70 text-sm text-center px-8">
+                                    Point at your crop leaf for best results
                                 </p>
                             </div>
                         </div>
+
+                        {/* Capture button */}
+                        <div className="flex items-center justify-center py-8">
+                            <motion.button
+                                onClick={capturePhoto}
+                                whileTap={{ scale: 0.92 }}
+                                className="w-20 h-20 rounded-full border-4 border-white flex items-center justify-center"
+                                style={{ background: "rgba(255,255,255,0.2)" }}
+                            >
+                                <div className="w-14 h-14 rounded-full bg-white" />
+                            </motion.button>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* ── Header ── */}
+            <motion.header
+                initial={{ y: -20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                className="sticky top-0 z-40 border-b border-white/10 px-4 py-3 flex items-center gap-3"
+                style={{ background: "rgba(7,21,10,0.90)", backdropFilter: "blur(20px)" }}
+            >
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => navigate("/dashboard")}
+                    className="rounded-xl text-white/70 hover:text-white hover:bg-white/10"
+                >
+                    <ArrowLeft className="w-5 h-5" />
+                </Button>
+                <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
+                            <Bot className="w-5 h-5 text-white" />
+                        </div>
+                        <div>
+                            <h1 className="text-sm font-bold text-white">AI Farm Assistant</h1>
+                            <p className="text-xs text-emerald-400 flex items-center gap-1">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block" />
+                                Online & Ready to Help
+                            </p>
+                        </div>
                     </div>
-                    <Sparkles className="w-5 h-5 text-amber-500" />
                 </div>
+                <Sparkles className="w-5 h-5 text-amber-400" />
             </motion.header>
 
-            {/* Messages Container */}
-            <div className="flex-1 overflow-y-auto px-4 py-6 space-y-4 pb-24">
+            {/* ── Messages ── */}
+            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 pb-4">
                 <AnimatePresence>
-                    {messages.map((message, index) => (
+                    {messages.map((message) => (
                         <motion.div
                             key={message.id}
-                            initial={{ opacity: 0, y: 20 }}
+                            initial={{ opacity: 0, y: 16 }}
                             animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: index * 0.1 }}
-                            className={`flex gap-3 ${message.type === "user" ? "flex-row-reverse" : "flex-row"
-                                }`}
+                            className={`flex gap-3 ${message.type === "user" ? "flex-row-reverse" : "flex-row"}`}
                         >
                             {/* Avatar */}
                             <div
-                                className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${message.type === "ai"
-                                        ? "bg-gradient-to-br from-emerald-500 to-teal-600"
-                                        : "bg-gradient-to-br from-blue-500 to-purple-600"
+                                className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${message.type === "ai"
+                                    ? "bg-gradient-to-br from-emerald-500 to-teal-600"
+                                    : "bg-gradient-to-br from-blue-500 to-purple-600"
                                     }`}
                             >
-                                {message.type === "ai" ? (
-                                    <Bot className="w-6 h-6 text-white" />
-                                ) : (
-                                    <User className="w-6 h-6 text-white" />
-                                )}
+                                {message.type === "ai" ? <Bot className="w-5 h-5 text-white" /> : <User className="w-5 h-5 text-white" />}
                             </div>
 
-                            {/* Message Bubble */}
-                            <div className="flex-1 max-w-[75%]">
-                                <GlassCard
-                                    className={`p-4 ${message.type === "ai"
-                                            ? "bg-white/90"
-                                            : "bg-gradient-to-br from-blue-500 to-purple-600 text-white"
-                                        }`}
-                                >
-                                    <p className="text-sm whitespace-pre-wrap leading-relaxed">
-                                        {message.content}
-                                    </p>
-                                    <p
-                                        className={`text-xs mt-2 ${message.type === "ai" ? "text-gray-400" : "text-white/70"
-                                            }`}
-                                    >
-                                        {message.timestamp.toLocaleTimeString([], {
-                                            hour: "2-digit",
-                                            minute: "2-digit",
-                                        })}
-                                    </p>
-                                </GlassCard>
+                            {/* Bubble */}
+                            <div className="flex-1 max-w-[78%] space-y-2">
+                                {/* Image preview in message */}
+                                {message.imageUrl && (
+                                    <div className={`flex ${message.type === "user" ? "justify-end" : "justify-start"}`}>
+                                        <div className="relative rounded-2xl overflow-hidden border border-white/20 shadow-lg" style={{ maxWidth: "220px" }}>
+                                            <img
+                                                src={message.imageUrl}
+                                                alt="Crop photo"
+                                                className="w-full object-cover rounded-2xl"
+                                                style={{ maxHeight: "180px" }}
+                                            />
+                                            <div className="absolute bottom-0 left-0 right-0 px-2 py-1 text-xs text-white/80 flex items-center gap-1"
+                                                style={{ background: "rgba(0,0,0,0.5)" }}>
+                                                <ScanLine className="w-3 h-3" /> Crop photo
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
 
-                                {/* Quick Reply Suggestions */}
-                                {message.suggestions && (
-                                    <div className="mt-2 flex flex-wrap gap-2">
-                                        {message.suggestions.map((suggestion, idx) => (
+                                {/* Text bubble */}
+                                {message.content && (
+                                    <div
+                                        className={`p-3.5 rounded-2xl ${message.type === "ai"
+                                            ? "rounded-tl-sm border border-white/10"
+                                            : "rounded-tr-sm bg-gradient-to-br from-blue-600 to-purple-600"
+                                            }`}
+                                        style={message.type === "ai" ? { background: "rgba(255,255,255,0.07)" } : {}}
+                                    >
+                                        <p className={`text-sm whitespace-pre-wrap leading-relaxed ${message.type === "ai" ? "text-white/90" : "text-white"}`}>
+                                            {message.content}
+                                        </p>
+                                        <p className={`text-xs mt-1.5 ${message.type === "ai" ? "text-white/30" : "text-white/60"}`}>
+                                            {message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                                        </p>
+                                    </div>
+                                )}
+
+                                {/* Suggestions */}
+                                {message.suggestions && message.type === "ai" && (
+                                    <div className="flex flex-wrap gap-2">
+                                        {message.suggestions.map((s, idx) => (
                                             <button
                                                 key={idx}
-                                                onClick={() => handleSuggestionClick(suggestion)}
-                                                className="px-3 py-1.5 bg-white border border-emerald-200 text-emerald-700 rounded-full text-xs font-medium hover:bg-emerald-50 transition-colors"
+                                                onClick={() => { setInputMessage(s); inputRef.current?.focus(); }}
+                                                className="px-3 py-1.5 rounded-full text-xs font-medium text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/15 transition-colors"
+                                                style={{ background: "rgba(16,185,129,0.08)" }}
                                             >
-                                                {suggestion}
+                                                {s}
                                             </button>
                                         ))}
                                     </div>
@@ -349,65 +471,113 @@ Feel free to ask me anything specific about your crops!`;
 
                 {/* Typing Indicator */}
                 {isTyping && (
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="flex gap-3"
-                    >
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
-                            <Bot className="w-6 h-6 text-white" />
+                    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="flex gap-3">
+                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
+                            <Bot className="w-5 h-5 text-white" />
                         </div>
-                        <GlassCard className="p-4 bg-white/90">
-                            <div className="flex gap-1">
-                                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-bounce"></span>
-                                <span
-                                    className="w-2 h-2 rounded-full bg-emerald-500 animate-bounce"
-                                    style={{ animationDelay: "0.2s" }}
-                                ></span>
-                                <span
-                                    className="w-2 h-2 rounded-full bg-emerald-500 animate-bounce"
-                                    style={{ animationDelay: "0.4s" }}
-                                ></span>
+                        <div
+                            className="p-3.5 rounded-2xl rounded-tl-sm border border-white/10"
+                            style={{ background: "rgba(255,255,255,0.07)" }}
+                        >
+                            <div className="flex gap-1 items-center h-4">
+                                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-bounce" />
+                                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-bounce" style={{ animationDelay: "0.2s" }} />
+                                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-bounce" style={{ animationDelay: "0.4s" }} />
                             </div>
-                        </GlassCard>
+                        </div>
                     </motion.div>
                 )}
-
                 <div ref={messagesEndRef} />
             </div>
 
-            {/* Quick Action Buttons */}
-            <div className="px-4 py-2 bg-white/50 backdrop-blur-sm border-t border-gray-200">
-                <div className="flex gap-2 overflow-x-auto pb-2">
-                    <button className="flex items-center gap-2 px-4 py-2 bg-white rounded-full border border-gray-200 text-sm font-medium whitespace-nowrap hover:bg-gray-50 transition-colors">
-                        <Leaf className="w-4 h-4 text-green-600" />
-                        Crop Tips
-                    </button>
-                    <button className="flex items-center gap-2 px-4 py-2 bg-white rounded-full border border-gray-200 text-sm font-medium whitespace-nowrap hover:bg-gray-50 transition-colors">
-                        <Sun className="w-4 h-4 text-amber-600" />
-                        Weather
-                    </button>
-                    <button className="flex items-center gap-2 px-4 py-2 bg-white rounded-full border border-gray-200 text-sm font-medium whitespace-nowrap hover:bg-gray-50 transition-colors">
-                        <Droplets className="w-4 h-4 text-blue-600" />
-                        Irrigation
-                    </button>
-                    <button className="flex items-center gap-2 px-4 py-2 bg-white rounded-full border border-gray-200 text-sm font-medium whitespace-nowrap hover:bg-gray-50 transition-colors">
-                        <TrendingUp className="w-4 h-4 text-purple-600" />
-                        Market
-                    </button>
+            {/* ── Quick Action Chips ── */}
+            <div
+                className="px-4 py-2 border-t border-white/10"
+                style={{ background: "rgba(7,21,10,0.80)", backdropFilter: "blur(12px)" }}
+            >
+                <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+                    {quickActions.map((action) => {
+                        const Icon = action.icon;
+                        return (
+                            <button
+                                key={action.label}
+                                onClick={() => { setInputMessage(action.query); inputRef.current?.focus(); }}
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-white/15 text-xs font-medium whitespace-nowrap hover:bg-white/10 transition-colors flex-shrink-0"
+                                style={{ background: "rgba(255,255,255,0.05)" }}
+                            >
+                                <Icon className={`w-3.5 h-3.5 ${action.color}`} />
+                                <span className="text-white/70">{action.label}</span>
+                            </button>
+                        );
+                    })}
                 </div>
             </div>
 
-            {/* Input Area */}
-            <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4 shadow-lg">
-                <div className="flex gap-2 items-end">
-                    <button className="p-2 rounded-full hover:bg-gray-100 transition-colors">
-                        <Camera className="w-5 h-5 text-gray-600" />
-                    </button>
-                    <button className="p-2 rounded-full hover:bg-gray-100 transition-colors">
-                        <ImageIcon className="w-5 h-5 text-gray-600" />
-                    </button>
+            {/* ── Pending Image Preview ── */}
+            <AnimatePresence>
+                {pendingImage && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 10 }}
+                        className="px-4 py-2 border-t border-white/10 flex items-center gap-3"
+                        style={{ background: "rgba(7,21,10,0.90)" }}
+                    >
+                        <div className="relative">
+                            <img
+                                src={pendingImage}
+                                alt="Pending"
+                                className="w-14 h-14 rounded-xl object-cover border border-emerald-500/40"
+                            />
+                            <button
+                                onClick={removePendingImage}
+                                className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500 flex items-center justify-center shadow-md"
+                            >
+                                <X className="w-3 h-3 text-white" />
+                            </button>
+                        </div>
+                        <div className="flex-1">
+                            <p className="text-xs text-white/70 font-medium">Photo ready to send</p>
+                            <p className="text-xs text-white/40">Add a message or tap send</p>
+                        </div>
+                        <ScanLine className="w-5 h-5 text-emerald-400 animate-pulse" />
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
+            {/* ── Input Area ── */}
+            <div
+                className="sticky bottom-0 px-4 py-3 border-t border-white/10"
+                style={{
+                    background: "rgba(7,21,10,0.95)",
+                    backdropFilter: "blur(20px)",
+                    paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))"
+                }}
+            >
+                <div className="flex gap-2 items-center">
+                    {/* Camera button */}
+                    <motion.button
+                        onClick={openCamera}
+                        whileTap={{ scale: 0.9 }}
+                        className="w-11 h-11 rounded-full flex items-center justify-center border border-white/20 hover:bg-white/10 transition-colors flex-shrink-0"
+                        style={{ background: "rgba(255,255,255,0.08)" }}
+                        title="Take photo"
+                    >
+                        <Camera className="w-5 h-5 text-emerald-400" />
+                    </motion.button>
+
+                    {/* Upload button */}
+                    <motion.button
+                        onClick={() => fileInputRef.current?.click()}
+                        whileTap={{ scale: 0.9 }}
+                        className="w-11 h-11 rounded-full flex items-center justify-center border border-white/20 hover:bg-white/10 transition-colors flex-shrink-0"
+                        style={{ background: "rgba(255,255,255,0.08)" }}
+                        title="Upload photo"
+                    >
+                        <ImageIcon className="w-5 h-5 text-blue-400" />
+                    </motion.button>
+
+                    {/* Text Input */}
                     <div className="flex-1 relative">
                         <input
                             ref={inputRef}
@@ -415,26 +585,41 @@ Feel free to ask me anything specific about your crops!`;
                             value={inputMessage}
                             onChange={(e) => setInputMessage(e.target.value)}
                             onKeyPress={handleKeyPress}
-                            placeholder="Ask me anything about farming..."
-                            className="w-full px-4 py-3 bg-gray-100 rounded-2xl border-2 border-transparent focus:border-emerald-500 focus:bg-white transition-all outline-none text-sm"
+                            placeholder={pendingImage ? "Add a message (optional)…" : "Ask me anything about farming…"}
+                            className="w-full px-4 py-3 rounded-2xl border border-white/15 text-white text-sm outline-none transition-all placeholder:text-white/30 focus:border-emerald-500/50"
+                            style={{ background: "rgba(255,255,255,0.08)" }}
                         />
                     </div>
 
-                    <button className="p-2 rounded-full hover:bg-gray-100 transition-colors">
-                        <Mic className="w-5 h-5 text-gray-600" />
-                    </button>
-
-                    <Button
-                        onClick={handleSendMessage}
-                        disabled={!inputMessage.trim() || isTyping}
-                        className="p-3 rounded-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-lg disabled:opacity-50"
+                    {/* Mic */}
+                    <motion.button
+                        onClick={toggleMic}
+                        whileTap={{ scale: 0.9 }}
+                        className={`w-11 h-11 rounded-full flex items-center justify-center transition-all flex-shrink-0 ${isListening
+                            ? "bg-red-500 shadow-lg shadow-red-900/50"
+                            : "border border-white/20 hover:bg-white/10"
+                            }`}
+                        style={isListening ? {} : { background: "rgba(255,255,255,0.08)" }}
+                        title="Voice input"
                     >
-                        {isTyping ? (
-                            <Loader2 className="w-5 h-5 animate-spin" />
+                        {isListening ? (
+                            <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 0.8, repeat: Infinity }}>
+                                <MicOff className="w-5 h-5 text-white" />
+                            </motion.div>
                         ) : (
-                            <Send className="w-5 h-5" />
+                            <Mic className="w-5 h-5 text-white/70" />
                         )}
-                    </Button>
+                    </motion.button>
+
+                    {/* Send */}
+                    <motion.button
+                        onClick={handleSendMessage}
+                        disabled={(!inputMessage.trim() && !pendingImage) || isTyping}
+                        whileTap={{ scale: 0.9 }}
+                        className="w-11 h-11 rounded-full flex items-center justify-center bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg shadow-emerald-900/40 disabled:opacity-40 flex-shrink-0"
+                    >
+                        {isTyping ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
+                    </motion.button>
                 </div>
             </div>
         </div>
