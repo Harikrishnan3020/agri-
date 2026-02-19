@@ -11,6 +11,16 @@ interface UserData {
   image?: string;
 }
 
+export interface ScanRecord {
+  id: string;
+  disease: string;
+  crop: string;
+  severity: "low" | "medium" | "high";
+  confidence: number;
+  date: string; // ISO string
+  isHealthy: boolean;
+}
+
 interface LeaderboardEntry {
   rank: number;
   name: string;
@@ -41,9 +51,12 @@ interface AppState {
 
   isAuthenticated: boolean;
   user: UserData | null;
-  login: (email: string) => void;
+  login: (email: string, name?: string) => void;
   logout: () => void;
   updateUser: (data: Partial<UserData>) => void;
+
+  scanHistory: ScanRecord[];
+  addScanRecord: (record: Omit<ScanRecord, "id" | "date">) => void;
 
   leaderboard: LeaderboardEntry[];
   updateLeaderboard: (score: number) => void;
@@ -64,14 +77,9 @@ export const useAppStore = create<AppState>()(
       setShowResults: (show) => set({ showResults: show }),
 
       scanCount: 0,
+      // incrementScanCount kept for backward compat — addScanRecord handles everything now
       incrementScanCount: () => {
-        const currentScanCount = get().scanCount + 1;
-        set({ scanCount: currentScanCount });
-
-        // Update score (100 points per scan)
-        const currentScore = (get().user?.score || 0) + 100;
-        get().updateUser({ scans: currentScanCount, score: currentScore });
-        get().updateLeaderboard(currentScore);
+        // No-op: addScanRecord already updates scans + score + leaderboard atomically
       },
 
       isPremium: false,
@@ -83,13 +91,45 @@ export const useAppStore = create<AppState>()(
       isAuthenticated: false,
       user: null,
       leaderboard: INITIAL_LEADERBOARD,
+      scanHistory: [],
 
-      login: (email) => {
+      addScanRecord: (record) => {
+        const newRecord: ScanRecord = {
+          ...record,
+          id: Date.now().toString(),
+          date: new Date().toISOString(),
+        };
+
+        // Atomically update history + user.scans + scanCount + score
+        set((state) => {
+          const newHistory = [newRecord, ...state.scanHistory].slice(0, 100);
+          const newScanCount = newHistory.length;
+          const newScore = (state.user?.score || 0) + 100;
+          const updatedUser = state.user
+            ? { ...state.user, scans: newScanCount, score: newScore }
+            : state.user;
+          return {
+            scanHistory: newHistory,
+            scanCount: newScanCount,
+            user: updatedUser,
+          };
+        });
+
+        // Update leaderboard with new score
+        const newScore = (get().user?.score || 0);
+        get().updateLeaderboard(newScore);
+      },
+
+      login: (email, name) => {
         // Simulate login
         const existingUser = get().user;
         if (!existingUser) {
+          // Derive a display name: use provided name, or email prefix, or phone number fallback
+          const isEmail = email.includes("@");
+          const derivedName = name?.trim() ||
+            (isEmail ? email.split("@")[0] : "Farmer");
           const newUser: UserData = {
-            name: email.split("@")[0] || "Farmer",
+            name: derivedName,
             email,
             location: "Unknown",
             joinedDate: new Date().toISOString(),
@@ -100,7 +140,15 @@ export const useAppStore = create<AppState>()(
           // Add user to leaderboard initially
           get().updateLeaderboard(0);
         } else {
-          set({ isAuthenticated: true });
+          // If logging in again, update name if provided
+          if (name?.trim()) {
+            set((state) => ({
+              isAuthenticated: true,
+              user: state.user ? { ...state.user, name: name.trim() } : state.user,
+            }));
+          } else {
+            set({ isAuthenticated: true });
+          }
         }
       },
 
@@ -151,8 +199,9 @@ export const useAppStore = create<AppState>()(
         scanCount: state.scanCount,
         user: state.user,
         leaderboard: state.leaderboard,
+        scanHistory: state.scanHistory,
         selectedLanguage: state.selectedLanguage,
-        isAuthenticated: state.isAuthenticated, // Keep login state
+        isAuthenticated: state.isAuthenticated,
       }),
     }
   )
