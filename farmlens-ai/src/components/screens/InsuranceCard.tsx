@@ -66,7 +66,7 @@ const InsuranceCard = ({ data, onClaimClick, className }: InsuranceCardProps) =>
         </motion.div>
         <div className="flex-1">
           <h3 className="font-semibold text-foreground">{t.insuranceTitle}</h3>
-          <p className="text-xs text-muted-foreground">Policy: {data.policyId}</p>
+          <p className="text-xs text-muted-foreground">{t.policy}: {data.policyId}</p>
         </div>
         <div className={cn("px-2 py-1 rounded-full text-xs font-medium", status.bg, status.color)}>
           {status.label}
@@ -80,9 +80,9 @@ const InsuranceCard = ({ data, onClaimClick, className }: InsuranceCardProps) =>
         animate={{ scale: 1, opacity: 1 }}
         transition={{ delay: 0.2 }}
       >
-        <div className="text-sm text-muted-foreground mb-1">{t.claimAmount}</div>
+        <div className="text-sm text-muted-foreground mb-1">{t.estimatedReliefGrant}</div>
         <motion.div
-          className="text-4xl font-bold text-foreground"
+          className="text-4xl font-bold text-emerald-700"
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3, type: "spring" }}
@@ -93,35 +93,35 @@ const InsuranceCard = ({ data, onClaimClick, className }: InsuranceCardProps) =>
 
       {/* Details grid */}
       <div className="grid grid-cols-2 gap-3 mb-6">
-        <div className="p-3 rounded-xl bg-muted/50">
-          <div className="text-xs text-muted-foreground mb-0.5">{t.cropType}</div>
-          <div className="font-medium text-foreground text-sm">{data.cropType}</div>
+        <div className="p-3 rounded-xl bg-emerald-50">
+          <div className="text-xs text-emerald-600 mb-0.5">{t.cropType}</div>
+          <div className="font-medium text-emerald-900 text-sm">{data.cropType}</div>
         </div>
-        <div className="p-3 rounded-xl bg-muted/50">
-          <div className="text-xs text-muted-foreground mb-0.5">{t.damageType}</div>
-          <div className="font-medium text-foreground text-sm">{data.damageType}</div>
+        <div className="p-3 rounded-xl bg-emerald-50">
+          <div className="text-xs text-emerald-600 mb-0.5">{t.damageType}</div>
+          <div className="font-medium text-emerald-900 text-sm">{data.damageType}</div>
         </div>
       </div>
 
       {/* Features */}
-      <div className="flex items-center gap-4 mb-6 text-xs text-muted-foreground">
+      <div className="flex items-center gap-4 mb-6 text-xs text-emerald-600/70">
         <div className="flex items-center gap-1">
-          <Zap className="w-3.5 h-3.5 text-secondary" />
-          {t.oneTapClaim}
+          <Shield className="w-3.5 h-3.5 text-emerald-500" />
+          Certified Proof
         </div>
         <div className="flex items-center gap-1">
-          <Clock className="w-3.5 h-3.5 text-primary" />
-          {data.estimatedDays || 3} {t.daysPayout}
+          <Clock className="w-3.5 h-3.5 text-emerald-500" />
+          {data.estimatedDays || 3} Days Audit
         </div>
       </div>
 
       {/* CTA Button */}
       <Button
         onClick={onClaimClick}
-        className="w-full h-12 rounded-xl bg-secondary-gradient text-primary-foreground font-semibold shadow-secondary-glow"
+        className="w-full h-12 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-emerald-glow"
       >
-        <CreditCard className="w-4 h-4 mr-2" />
-        {t.claimButton}
+        <Shield className="w-4 h-4 mr-2" />
+        Verify & Receive Support
       </Button>
     </GlassCard>
   );

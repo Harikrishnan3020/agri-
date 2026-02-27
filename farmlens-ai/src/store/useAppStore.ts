@@ -1,5 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import type { MarketplaceListing } from "@/components/screens/Marketplace";
+import { translations, LanguageCode } from "@/data/translations";
 
 interface UserData {
   name: string;
@@ -19,6 +21,16 @@ export interface ScanRecord {
   confidence: number;
   date: string; // ISO string
   isHealthy: boolean;
+  imageUrl?: string;
+  description?: string; // Treatment or diagnosis description
+  preventiveMeasures?: string[];
+  userFeedback?: {
+    wasCorrect: boolean;
+    actualDisease?: string;
+    actualCrop?: string;
+    notes?: string;
+    timestamp: string;
+  };
 }
 
 interface LeaderboardEntry {
@@ -26,6 +38,7 @@ interface LeaderboardEntry {
   name: string;
   location: string;
   score: number;
+  scans: number;
   change: "up" | "down" | "same";
   isCurrentUser?: boolean;
 }
@@ -48,6 +61,7 @@ interface AppState {
 
   selectedLanguage: string;
   setLanguage: (lang: string) => void;
+  t: (typeof translations)[LanguageCode];
 
   isAuthenticated: boolean;
   user: UserData | null;
@@ -57,12 +71,22 @@ interface AppState {
 
   scanHistory: ScanRecord[];
   addScanRecord: (record: Omit<ScanRecord, "id" | "date">) => void;
+  clearScanHistory: () => void;
+  updateScanFeedback: (scanId: string, feedback: ScanRecord['userFeedback']) => void;
 
   leaderboard: LeaderboardEntry[];
   updateLeaderboard: (score: number) => void;
-}
 
-const INITIAL_LEADERBOARD: LeaderboardEntry[] = [];
+  listings: MarketplaceListing[];
+  setListings: (listings: MarketplaceListing[]) => void;
+  addListing: (listing: MarketplaceListing) => void;
+
+  // Settings
+  notificationsEnabled: boolean;
+  setNotificationsEnabled: (enabled: boolean) => void;
+  darkMode: boolean;
+  setDarkMode: (enabled: boolean) => void;
+}
 
 export const useAppStore = create<AppState>()(
   persist(
@@ -86,11 +110,26 @@ export const useAppStore = create<AppState>()(
       setPremium: (premium) => set({ isPremium: premium }),
 
       selectedLanguage: "en",
-      setLanguage: (lang) => set({ selectedLanguage: lang }),
+      setLanguage: (lang) => {
+        const normalized = (lang in translations ? lang : "en") as LanguageCode;
+        set({
+          selectedLanguage: normalized,
+          t: translations[normalized],
+        });
+      },
+      t: translations.en,
 
       isAuthenticated: false,
       user: null,
-      leaderboard: INITIAL_LEADERBOARD,
+      // NO fake leaderboard data - starts empty, only real users get added
+      leaderboard: [],
+      listings: [],
+      setListings: (listings) => set({ listings }),
+      addListing: (listing) => set((state) => {
+        const exists = state.listings.some((item) => item.id === listing.id);
+        if (exists) return state;
+        return { listings: [listing, ...state.listings] };
+      }),
       scanHistory: [],
 
       addScanRecord: (record) => {
@@ -118,6 +157,24 @@ export const useAppStore = create<AppState>()(
         // Update leaderboard with new score
         const newScore = (get().user?.score || 0);
         get().updateLeaderboard(newScore);
+      },
+
+      clearScanHistory: () => {
+        set((state) => ({
+          scanHistory: [],
+          scanCount: 0,
+          user: state.user ? { ...state.user, scans: 0 } : state.user,
+        }));
+      },
+
+      updateScanFeedback: (scanId, feedback) => {
+        set((state) => ({
+          scanHistory: state.scanHistory.map(scan =>
+            scan.id === scanId
+              ? { ...scan, userFeedback: feedback }
+              : scan
+          ),
+        }));
       },
 
       login: (email, name) => {
@@ -149,6 +206,8 @@ export const useAppStore = create<AppState>()(
           } else {
             set({ isAuthenticated: true });
           }
+          // Ensure user is in leaderboard
+          get().updateLeaderboard(existingUser.score || 0);
         }
       },
 
@@ -169,18 +228,22 @@ export const useAppStore = create<AppState>()(
         // Remove existing current user entry
         newLeaderboard = newLeaderboard.filter(entry => !entry.isCurrentUser);
 
-        // Add current user
+        // Get current scan count from history
+        const totalScans = state.scanHistory.length;
+
+        // Add current user with updated score and scans
         newLeaderboard.push({
           rank: 0, // Will be recalculated
           name: currentUser.name || "You",
           location: currentUser.location || "Unknown",
           score: newScore,
+          scans: totalScans,
           change: "same",
           isCurrentUser: true,
         });
 
-        // Sort by score
-        newLeaderboard.sort((a, b) => b.score - a.score);
+        // Sort by score (primary) then scans (secondary)
+        newLeaderboard.sort((a, b) => b.score - a.score || b.scans - a.scans);
 
         // Assign ranks and limit to top 10
         newLeaderboard = newLeaderboard.map((entry, index) => ({
@@ -191,6 +254,13 @@ export const useAppStore = create<AppState>()(
         set({ leaderboard: newLeaderboard });
       },
 
+      // Settings
+      notificationsEnabled: true,
+      setNotificationsEnabled: (enabled) => set({ notificationsEnabled: enabled }),
+      
+      darkMode: true,
+      setDarkMode: (enabled) => set({ darkMode: enabled }),
+
     }),
     {
       name: "agriyield-storage", // local storage key
@@ -200,9 +270,17 @@ export const useAppStore = create<AppState>()(
         user: state.user,
         leaderboard: state.leaderboard,
         scanHistory: state.scanHistory,
+        listings: state.listings,
         selectedLanguage: state.selectedLanguage,
         isAuthenticated: state.isAuthenticated,
+        notificationsEnabled: state.notificationsEnabled,
+        darkMode: state.darkMode,
       }),
+      onRehydrateStorage: () => (state) => {
+        if (state?.selectedLanguage) {
+          state.setLanguage(state.selectedLanguage);
+        }
+      },
     }
   )
 );

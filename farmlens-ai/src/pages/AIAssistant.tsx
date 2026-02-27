@@ -22,6 +22,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useAppStore } from "@/store/useAppStore";
 import { toast } from "sonner";
+import { translations, LanguageCode } from "@/data/translations";
 
 interface Message {
     id: string;
@@ -69,19 +70,20 @@ declare global {
 
 const AIAssistant = () => {
     const navigate = useNavigate();
-    const { user } = useAppStore();
+    const { user, selectedLanguage } = useAppStore();
+    const t = translations[selectedLanguage as LanguageCode] || translations.en;
 
     const [messages, setMessages] = useState<Message[]>([
         {
             id: "1",
             type: "ai",
-            content: `Hello ${user?.name || "Farmer"}! 👋 I'm your AI farming assistant.\n\nYou can:\n• 💬 Ask me anything about crops & diseases\n• 📷 Send a photo of your crop for analysis\n• 🎤 Use voice input to speak your question`,
+            content: `${t.greeting} ${user?.name || "Farmer"}! 👋 ${t.aiWelcome}\n\n${t.aiCanDo}\n• 💬 ${t.aiAskAnything}\n• 📷 ${t.aiSendPhoto}\n• 🎤 ${t.aiVoiceInput}`,
             timestamp: new Date(),
             suggestions: [
-                "How to prevent late blight?",
-                "Best fertilizer for tomatoes",
-                "When to plant rice?",
-                "Organic pest control methods",
+                t.suggestionBlight,
+                t.suggestionFertilizer,
+                t.suggestionPlanting,
+                t.suggestionPest,
             ],
         },
     ]);
@@ -537,7 +539,7 @@ const AIAssistant = () => {
                             </button>
                         </div>
                         <div className="flex-1">
-                            <p className="text-xs text-white/70 font-medium">Photo ready to send</p>
+                            <p className="text-xs text-white/70 font-medium">{t.photoReadyToSend}</p>
                             <p className="text-xs text-white/40">Add a message or tap send</p>
                         </div>
                         <ScanLine className="w-5 h-5 text-emerald-400 animate-pulse" />

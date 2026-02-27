@@ -16,6 +16,7 @@ interface MarketplaceListing {
   image?: string;
   isVerified?: boolean;
   deliveryAvailable?: boolean;
+  description?: string;
   category: "seeds" | "fertilizer" | "pesticide" | "equipment" | "produce";
 }
 
@@ -85,8 +86,9 @@ const MarketplaceCard = ({ listing, onChatClick, onBuyClick, className }: Market
           </div>
           {/* Price */}
           <div className="text-right flex-shrink-0">
-            <div className="text-lg font-bold text-white">₹{listing.price}</div>
-            <div className="text-xs text-white/40">/{listing.unit}</div>
+            <div className="text-xs text-white/40 mb-0.5">{t.exchangeValue}</div>
+            <div className="text-lg font-bold text-emerald-400">₹{listing.price}</div>
+            <div className="text-[10px] text-white/40">/{listing.unit}</div>
           </div>
         </div>
 
@@ -96,33 +98,33 @@ const MarketplaceCard = ({ listing, onChatClick, onBuyClick, className }: Market
             <MapPin className="w-3 h-3" />
             {listing.distance}
           </div>
-          <div className="flex items-center gap-1">
-            <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
-            <span className="text-white/60">{listing.rating.toFixed(1)}</span>
+          <div className="flex items-center gap-1 text-emerald-400">
+            <Star className="w-3 h-3 fill-emerald-400" />
+            <span className="text-emerald-400 font-medium">{listing.rating.toFixed(1)}</span>
           </div>
           {listing.deliveryAvailable && (
             <div className="flex items-center gap-1 text-emerald-400">
               <Truck className="w-3 h-3" />
-              Delivery
+              Direct Supply
             </div>
           )}
         </div>
 
         {/* Action buttons */}
-        <div className="flex gap-2 mt-3">
+        <div className="flex gap-2 mt-4">
           <Button
             onClick={onBuyClick}
             size="sm"
-            className="flex-1 h-8 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold border-0"
+            className="flex-1 h-9 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold border-0 shadow-lg shadow-emerald-900/40"
           >
-            {t.buyNow}
+            Connect with Farmer
           </Button>
           <Button
             onClick={onChatClick}
             size="sm"
-            className="h-8 px-3 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/20"
+            className="h-9 px-4 rounded-xl bg-white/5 hover:bg-white/10 text-white border border-white/10"
           >
-            <MessageCircle className="w-3.5 h-3.5" />
+            <MessageCircle className="w-4 h-4" />
           </Button>
         </div>
       </div>
@@ -145,31 +147,8 @@ const MarketplaceSection = ({ listings, className }: MarketplaceSectionProps) =>
       className="min-h-screen pb-24"
       style={{ background: "linear-gradient(160deg, #0a1a0f 0%, #0d2318 40%, #071510 100%)" }}
     >
-      {/* Real-time Market Ticker */}
-      <div className="bg-emerald-900/30 border-b border-white/5 backdrop-blur-md overflow-hidden py-2">
-        <motion.div
-          className="flex gap-8 whitespace-nowrap"
-          animate={{ x: ["100%", "-100%"] }}
-          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-        >
-          {[
-            { name: "Wheat", price: "₹2,150", change: "+1.2%", up: true },
-            { name: "Rice", price: "₹3,200", change: "-0.5%", up: false },
-            { name: "Cotton", price: "₹6,400", change: "+2.8%", up: true },
-            { name: "Maize", price: "₹1,850", change: "+0.3%", up: true },
-            { name: "Potato", price: "₹850", change: "-1.5%", up: false },
-            { name: "Soybean", price: "₹4,100", change: "+1.8%", up: true },
-          ].map((item, i) => (
-            <div key={i} className="flex items-center gap-2 text-sm">
-              <span className="text-white/70 font-medium">{item.name}</span>
-              <span className="text-white font-bold">{item.price}</span>
-              <span className={`text-xs ${item.up ? "text-emerald-400" : "text-red-400"}`}>
-                {item.up ? "▲" : "▼"} {item.change}
-              </span>
-            </div>
-          ))}
-        </motion.div>
-      </div>
+      {/* Real-time Market Ticker - Temporarily disabled due to lack of API */}
+      {/* <div className="bg-emerald-900/30 border-b border-white/5 backdrop-blur-md overflow-hidden py-2"> ... </div> */}
 
       <section className={cn("px-4 py-6", className)}>
         {/* Header */}
@@ -195,14 +174,22 @@ const MarketplaceSection = ({ listings, className }: MarketplaceSectionProps) =>
           variants={{ hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.08 } } }}
           className="space-y-3"
         >
-          {listings.map((listing) => (
-            <motion.div
-              key={listing.id}
-              variants={{ hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0 } }}
-            >
-              <MarketplaceCard listing={listing} />
-            </motion.div>
-          ))}
+          {listings.length === 0 ? (
+            <div className="text-center py-12 px-4 rounded-2xl border border-white/5 bg-white/5">
+              <ShoppingBag className="w-12 h-12 text-white/20 mx-auto mb-3" />
+              <h3 className="text-white font-semibold mb-1">{t.marketIsEmpty}</h3>
+              <p className="text-white/40 text-sm">Be the first to list your produce!</p>
+            </div>
+          ) : (
+            listings.map((listing) => (
+              <motion.div
+                key={listing.id}
+                variants={{ hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0 } }}
+              >
+                <MarketplaceCard listing={listing} />
+              </motion.div>
+            ))
+          )}
         </motion.div>
       </section>
     </div>

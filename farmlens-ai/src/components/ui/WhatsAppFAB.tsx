@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { MessageCircle, X, Share2, ShoppingCart, Phone } from "lucide-react";
+import { MessageCircle, X, Share2, Phone, Leaf } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 
@@ -22,9 +22,9 @@ const WhatsAppFAB = ({
   };
 
   const actions = [
-    { icon: Phone, label: "Call Expert", color: "bg-teal-500", action: () => {} },
-    { icon: ShoppingCart, label: "My Cart", color: "bg-amber-500", action: () => {} },
-    { icon: Share2, label: "Share", color: "bg-primary", action: () => {} },
+    { icon: Phone, label: "Call Expert", color: "bg-teal-500", action: () => { } },
+    { icon: Leaf, label: "Treatment Guide", color: "bg-emerald-500", action: () => { } },
+    { icon: Share2, label: "Share", color: "bg-primary", action: () => { } },
   ];
 
   return (
@@ -77,7 +77,7 @@ const WhatsAppFAB = ({
         ) : (
           <MessageCircle className="w-6 h-6" />
         )}
-        
+
         {/* Pulse Ring */}
         <motion.span
           className="absolute inset-0 rounded-full bg-green-400"

@@ -4,6 +4,8 @@ import { GlassCard } from "@/components/ui/GlassCard";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
+import { useAppStore } from "@/store/useAppStore";
+import { translations, LanguageCode } from "@/data/translations";
 
 interface PremiumFeature {
   icon: React.ReactNode;
@@ -18,31 +20,35 @@ interface PremiumPaywallProps {
   className?: string;
 }
 
-const features: PremiumFeature[] = [
-  {
-    icon: <Scan className="w-5 h-5" />,
-    title: "Unlimited Scans",
-    description: "Scan as many crops as you need",
-  },
-  {
-    icon: <Star className="w-5 h-5" />,
-    title: "Priority Expert Access",
-    description: "Skip the queue for expert consultations",
-  },
-  {
-    icon: <TrendingUp className="w-5 h-5" />,
-    title: "Advanced Analytics",
-    description: "Detailed crop health reports & forecasts",
-  },
-  {
-    icon: <Sparkles className="w-5 h-5" />,
-    title: "AI Recommendations",
-    description: "Personalized farming suggestions",
-  },
-];
+
 
 const PremiumPaywall = ({ isOpen, onClose, onSubscribe, className }: PremiumPaywallProps) => {
+  const { selectedLanguage } = useAppStore();
+  const t = translations[selectedLanguage as LanguageCode] || translations.en;
   const [selectedPlan, setSelectedPlan] = useState<"monthly" | "yearly">("yearly");
+
+  const features: PremiumFeature[] = [
+    {
+      icon: <Scan className="w-5 h-5" />,
+      title: t.unlimitedScans,
+      description: t.unlimitedScansDesc,
+    },
+    {
+      icon: <Star className="w-5 h-5" />,
+      title: t.priorityExpert,
+      description: t.priorityExpertDesc,
+    },
+    {
+      icon: <TrendingUp className="w-5 h-5" />,
+      title: t.advancedAnalytics,
+      description: t.advancedAnalyticsDesc,
+    },
+    {
+      icon: <Sparkles className="w-5 h-5" />,
+      title: t.aiRecommendations,
+      description: t.aiRecommendationsDesc,
+    },
+  ];
 
   if (!isOpen) return null;
 
@@ -86,8 +92,8 @@ const PremiumPaywall = ({ isOpen, onClose, onSubscribe, className }: PremiumPayw
             >
               <Crown className="w-8 h-8 text-primary-foreground" />
             </motion.div>
-            <h2 className="text-2xl font-bold text-foreground mb-1">Go Premium</h2>
-            <p className="text-muted-foreground">Unlock the full power of AgriYield</p>
+            <h2 className="text-2xl font-bold text-foreground mb-1">{t.premiumTitle}</h2>
+            <p className="text-muted-foreground">{t.premiumSubtitle}</p>
           </div>
 
           {/* Features */}
@@ -98,14 +104,14 @@ const PremiumPaywall = ({ isOpen, onClose, onSubscribe, className }: PremiumPayw
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.1 + index * 0.1 }}
-                className="flex items-center gap-3 p-3 rounded-xl bg-muted/50"
+                className="flex items-center gap-3 p-3 rounded-xl bg-emerald-50/50 border border-emerald-100/50"
               >
-                <div className="w-10 h-10 rounded-xl bg-secondary/20 text-secondary flex items-center justify-center">
+                <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center">
                   {feature.icon}
                 </div>
                 <div>
-                  <div className="font-medium text-foreground text-sm">{feature.title}</div>
-                  <div className="text-xs text-muted-foreground">{feature.description}</div>
+                  <div className="font-medium text-emerald-900 text-sm">{feature.title}</div>
+                  <div className="text-xs text-emerald-600/70">{feature.description}</div>
                 </div>
               </motion.div>
             ))}
@@ -119,13 +125,13 @@ const PremiumPaywall = ({ isOpen, onClose, onSubscribe, className }: PremiumPayw
               className={cn(
                 "p-4 rounded-2xl border-2 transition-all text-left",
                 selectedPlan === "monthly"
-                  ? "border-primary bg-primary/5"
+                  ? "border-emerald-500 bg-emerald-50/50"
                   : "border-muted bg-muted/30"
               )}
             >
-              <div className="text-xs text-muted-foreground mb-1">Monthly</div>
-              <div className="text-xl font-bold text-foreground">₹79</div>
-              <div className="text-xs text-muted-foreground">/month</div>
+              <div className="text-xs text-emerald-600 mb-1">Standard</div>
+              <div className="text-xl font-bold text-emerald-900">FREE</div>
+              <div className="text-xs text-emerald-500">Foundation Supported</div>
             </button>
 
             {/* Yearly */}
@@ -134,25 +140,25 @@ const PremiumPaywall = ({ isOpen, onClose, onSubscribe, className }: PremiumPayw
               className={cn(
                 "p-4 rounded-2xl border-2 transition-all text-left relative overflow-hidden",
                 selectedPlan === "yearly"
-                  ? "border-primary bg-primary/5"
+                  ? "border-emerald-500 bg-emerald-50/50"
                   : "border-muted bg-muted/30"
               )}
             >
-              <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-primary text-2xs text-primary-foreground font-medium">
-                Save 40%
+              <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-emerald-500 text-2xs text-white font-medium">
+                Best Value
               </div>
-              <div className="text-xs text-muted-foreground mb-1">Yearly</div>
-              <div className="text-xl font-bold text-foreground">₹569</div>
-              <div className="text-xs text-muted-foreground">/year</div>
+              <div className="text-xs text-emerald-600 mb-1">Pro Tier</div>
+              <div className="text-xl font-bold text-emerald-900">FREE</div>
+              <div className="text-xs text-emerald-500">Community Choice</div>
             </button>
           </div>
 
           {/* Subscribe button */}
           <Button
             onClick={() => onSubscribe?.(selectedPlan)}
-            className="w-full h-14 rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 text-primary-foreground font-bold text-lg shadow-secondary-glow"
+            className="w-full h-14 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-bold text-lg shadow-emerald-glow"
           >
-            Start Premium
+            Activate Free Pro Tools
           </Button>
 
           {/* Fine print */}

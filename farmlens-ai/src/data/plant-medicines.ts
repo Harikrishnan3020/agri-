@@ -400,6 +400,76 @@ export const plantMedicinesDatabase: PlantMedicine[] = [
         seller: "AgriChem Suppliers",
         distance: "6.2 km",
         packaging: "500ml bottle"
+    },
+    {
+        id: "med_011",
+        name: "Bayer Confidor Insecticide (Imidacloprid 17.8% SL)",
+        brand: "Bayer CropScience",
+        price: 245,
+        originalPrice: 320,
+        discount: 23,
+        rating: 4.9,
+        reviews: 4120,
+        image: "https://images.unsplash.com/photo-1516975080664-ed2fc6a32937?w=400&h=400&fit=crop",
+        category: "pesticide",
+        type: "Systemic Insecticide",
+        activeIngredient: "Imidacloprid 17.8%",
+        dosage: "0.5 ml/L of water",
+        safetyPeriod: "15 days",
+        targetCrops: ["Tomato", "Chili", "Potato", "Cotton", "Rice"],
+        targetDiseases: ["Leaf Curl", "Aphids", "Whitefly", "Thrips", "Jassids"],
+        description: "World-renowned systemic insecticide for managing sucking pests. Best for preventing leaf curl virus transmission.",
+        benefits: [
+            "Highly effective at low doses",
+            "Long-lasting control",
+            "Excellent systemic action",
+            "Safe for crops when used as directed"
+        ],
+        precautions: [
+            "Avoid spraying during bee activity",
+            "Do not exceed recommended dose",
+            "Wear gloves and mask"
+        ],
+        applicationMethod: "Foliar spray or soil drenching. Quick absorption by plant parts.",
+        inStock: true,
+        seller: "Krishi Seva Store",
+        distance: "1.2 km",
+        packaging: "100ml bottle"
+    },
+    {
+        id: "med_012",
+        name: "Aries Plantomycin Bactericide",
+        brand: "Aries Agro",
+        price: 120,
+        originalPrice: 160,
+        discount: 25,
+        rating: 4.7,
+        reviews: 2840,
+        image: "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=400&h=400&fit=crop",
+        category: "pesticide",
+        type: "Antibiotic Bactericide",
+        activeIngredient: "Streptomycin Sulphate + Tetracycline Hydrochloride",
+        dosage: "1 g/10 L of water",
+        safetyPeriod: "10 days",
+        targetCrops: ["Tomato", "Chili", "Citrus", "Paddy"],
+        targetDiseases: ["Bacterial Spot", "Bacterial Canker", "Black arm", "Bacterial Blight"],
+        description: "Potent antibiotic combination for controlling wide range of bacterial diseases in plants.",
+        benefits: [
+            "Specific action against bacteria",
+            "Rapid absorption",
+            "Compatible with fungicides",
+            "Prevents spread of infection"
+        ],
+        precautions: [
+            "Use only for bacterial infections",
+            "Store in cool, dark place",
+            "Avoid inhalation"
+        ],
+        applicationMethod: "Foliar spray. Ensure uniform coverage of affected areas.",
+        inStock: true,
+        seller: "Agri Solutions Hub",
+        distance: "3.8 km",
+        packaging: "6g sachet"
     }
 ];
 
@@ -409,9 +479,23 @@ export const getMedicinesByCategory = (category: PlantMedicine['category']) => {
 };
 
 export const getMedicinesByDisease = (disease: string) => {
-    return plantMedicinesDatabase.filter(med =>
-        med.targetDiseases.some(d => d.toLowerCase().includes(disease.toLowerCase()))
-    );
+    if (!disease || disease === "Unknown") return [];
+
+    const keywords = disease.toLowerCase().split(/\s+/).filter(w => w.length > 2);
+
+    return plantMedicinesDatabase.filter(med => {
+        const medDiseases = med.targetDiseases.map(d => d.toLowerCase());
+
+        // Exact match first
+        if (medDiseases.some(d => d.includes(disease.toLowerCase()) || disease.toLowerCase().includes(d))) {
+            return true;
+        }
+
+        // Keyword match if no exact match
+        return keywords.some(word =>
+            medDiseases.some(d => d.includes(word))
+        );
+    });
 };
 
 export const getMedicinesByCrop = (crop: string) => {

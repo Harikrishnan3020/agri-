@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
 
 import { useAppStore } from "@/store/useAppStore";
+import { translations, LanguageCode } from "@/data/translations";
 
 interface HeaderProps {
   userName?: string;
@@ -22,6 +23,7 @@ const Header = ({
   className,
 }: HeaderProps) => {
   const { selectedLanguage, setLanguage } = useAppStore();
+  const t = translations[selectedLanguage as LanguageCode] || translations.en;
 
   return (
     <motion.header
@@ -36,12 +38,15 @@ const Header = ({
       <div className="flex items-center justify-between max-w-md mx-auto">
         {/* Logo & Welcome */}
         <div className="flex items-center gap-2">
-          <motion.div
-            className="w-10 h-10 rounded-xl bg-primary-gradient flex items-center justify-center shadow-primary-glow"
-            whileHover={{ rotate: 10, scale: 1.05 }}
-          >
-            <Leaf className="w-5 h-5 text-primary-foreground" />
-          </motion.div>
+          <Link to="/">
+            <motion.div
+              className="w-10 h-10 rounded-[12px] bg-[#10b981] flex items-center justify-center shadow-lg shadow-emerald-500/20"
+              whileHover={{ rotate: 10, scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <Leaf className="w-6 h-6 text-white" strokeWidth={2.5} />
+            </motion.div>
+          </Link>
           <div>
             <div className="flex items-center gap-1.5">
               <h1 className="font-bold text-white">AgriYield</h1>
@@ -49,14 +54,16 @@ const Header = ({
                 <motion.span
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
-                  className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-gradient-to-r from-amber-400 to-orange-500 text-2xs text-white font-medium"
+                  className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-gradient-to-r from-emerald-400 to-teal-500 text-2xs text-white font-bold tracking-wider"
                 >
                   <Sparkles className="w-2.5 h-2.5" />
-                  PRO
+                  {t.eliteBadge}
                 </motion.span>
               )}
             </div>
-            <p className="text-2xs text-emerald-400/70">Hello, {userName} 👋</p>
+            <p className="text-2xs text-emerald-400/70">
+              {t.helloUser.replace("{name}", userName)}
+            </p>
           </div>
         </div>
 
@@ -73,7 +80,7 @@ const Header = ({
               style={{ background: "rgba(16,185,129,0.08)" }}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              title="Login Page"
+              title={t.loginPageTitle}
             >
               <User className="w-4 h-4" />
             </motion.button>

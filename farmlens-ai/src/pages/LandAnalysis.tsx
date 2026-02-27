@@ -13,115 +13,86 @@ import {
     ScanLine,
     Leaf,
     MapPin,
-    CloudSun
+    CloudSun,
+    Sparkles
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useAppStore } from "@/store/useAppStore";
-
-interface SuitableCrop {
-    name: string;
-    match: string;
-    yield: string;
-    profit: string;
-    duration: string;
-}
-
-interface Financials {
-    estimatedCost: string;
-    estimatedRevenue: string;
-    projectedProfit: string;
-    roi: string;
-}
-
-interface AnalysisResult {
-    soilType: string;
-    phLevel: string;
-    organicCarbon: string;
-    suitableCrops: SuitableCrop[];
-    tricks: string[];
-    financials: Financials;
-}
+import { translations, LanguageCode } from "@/data/translations";
+import { analyzeLandWithGroq, LandAnalysisResult } from "@/services/landAnalysis";
 
 const LandAnalysis = () => {
     const navigate = useNavigate();
-    const { user } = useAppStore();
+    const { user, selectedLanguage } = useAppStore();
+    const t = translations[selectedLanguage as LanguageCode] || translations.en;
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
-    const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
-    const [location, setLocation] = useState<string>("Detecting location...");
-    const [weather, setWeather] = useState<string>("Sunny, 28°C");
+    const [analysisResult, setAnalysisResult] = useState<LandAnalysisResult | null>(null);
+    const [location, setLocation] = useState<string>(t.detectingLocation);
+    const [weather, setWeather] = useState<string>(t.fetchingWeather);
 
     useEffect(() => {
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
                 (position) => {
-                    // Display coordinates as we don't have a reverse geocoding API key
                     setLocation(`${position.coords.latitude.toFixed(4)}° N, ${position.coords.longitude.toFixed(4)}° E`);
-                    setWeather("Partly Cloudy, 30°C");
+                    // Use season-based weather
+                    const month = new Date().getMonth();
+                    const isMonsoon = month >= 6 && month <= 9;
+                    const isSummer = month >= 3 && month <= 5;
+                    const condition = isMonsoon ? t.conditionRainy : isSummer ? t.conditionSunny : t.conditionPartlyCloudy;
+                    const temp = isMonsoon ? "28" : isSummer ? "35" : "28";
+                    setWeather(t.weatherFormat.replace("{condition}", condition).replace("{temp}", temp));
                 },
-                (error) => {
-                    console.error(error);
-                    setLocation("Location Access Denied");
+                () => {
+                    setLocation(t.locationAccessDenied);
+                    setWeather(t.weatherFormat.replace("{condition}", t.conditionPartlyCloudy).replace("{temp}", "28"));
                 }
             );
         } else {
-            setLocation("Location Unavailable");
+            setLocation(t.locationUnavailable);
+            setWeather(t.weatherFormat.replace("{condition}", t.conditionPartlyCloudy).replace("{temp}", "28"));
         }
-    }, []);
+    }, [t]);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setSelectedImage(reader.result as string);
-                setAnalysisResult(null); // Reset previous result
-            };
-            reader.readAsDataURL(file);
-        }
+        setSelectedFile(file);
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            setSelectedImage(reader.result as string);
+            setAnalysisResult(null);
+        };
+        reader.readAsDataURL(file);
     };
 
     const handleAnalyze = async () => {
-        if (!selectedImage) return;
+        if (!selectedFile || !selectedImage) return;
 
         setIsAnalyzing(true);
-        // Simulate analysis delay
-        await new Promise(resolve => setTimeout(resolve, 2500));
+        toast.info(t.landAnalyzingToast, { duration: 5000 });
 
-        // Mock Result Data
-        setAnalysisResult({
-            soilType: "Alluvial / Loamy Soil",
-            phLevel: "6.8 (Optimal)",
-            organicCarbon: "High (0.75%)",
-            suitableCrops: [
-                { name: "Paddy (Rice)", match: "98%", yield: "2.5-3 tons/acre", profit: "High", duration: "120-150 days" },
-                { name: "Sugarcane", match: "92%", yield: "40-50 tons/acre", profit: "High", duration: "10-12 months" },
-                { name: "Groundnut", match: "85%", yield: "1.5-2 tons/acre", profit: "Medium", duration: "100-120 days" }
-            ],
-            tricks: [
-                "Implement laser land leveling for water efficiency.",
-                "Use Azospirillum bio-fertilizer for nitrogen fixation.",
-                "Regular monitoring for stem borer pests is advised."
-            ],
-            financials: {
-                estimatedCost: "₹28,000 / acre",
-                estimatedRevenue: "₹75,000 / acre",
-                projectedProfit: "₹47,000 / acre",
-                roi: "168%"
-            }
-        });
-        setIsAnalyzing(false);
-        toast.success("Land analysis complete!");
+        try {
+            const result = await analyzeLandWithGroq(selectedFile);
+            setAnalysisResult(result);
+            toast.success(t.landAnalysisCompleteToast);
+        } catch (error) {
+            console.error("Land analysis failed:", error);
+            toast.error(t.landAnalysisFailedToast);
+        } finally {
+            setIsAnalyzing(false);
+        }
     };
 
     return (
         <div className="min-h-screen relative overflow-hidden font-sans text-slate-900">
-            {/* Weather Background */}
+            {/* Background */}
             <div
                 className="absolute inset-0 z-0 bg-cover bg-center bg-fixed"
                 style={{
@@ -140,7 +111,7 @@ const LandAnalysis = () => {
                     <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="rounded-full bg-white/50 hover:bg-white/80">
                         <ArrowLeft className="w-5 h-5 text-slate-700" />
                     </Button>
-                    <h1 className="text-xl font-bold text-slate-900">Land Analysis</h1>
+                    <h1 className="text-xl font-bold text-slate-900">{t.landAnalysisTitle}</h1>
                 </div>
                 <div className="flex flex-col items-end text-xs font-medium text-slate-600">
                     <div className="flex items-center gap-1">
@@ -156,6 +127,16 @@ const LandAnalysis = () => {
 
             <div className="max-w-2xl mx-auto p-4 space-y-6 relative z-10">
 
+                {/* AI Badge */}
+                <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="flex items-center gap-2 px-4 py-2 bg-emerald-50/80 border border-emerald-200/50 rounded-2xl w-fit"
+                >
+                    <Sparkles className="w-4 h-4 text-emerald-600" />
+                    <span className="text-sm font-semibold text-emerald-700">{t.landAnalysisBadge}</span>
+                </motion.div>
+
                 {/* Upload Section */}
                 <motion.div
                     initial={{ opacity: 0, y: 10 }}
@@ -167,7 +148,7 @@ const LandAnalysis = () => {
                             <div className="relative">
                                 <img src={selectedImage} alt="Land" className="w-full h-64 object-cover rounded-xl shadow-md transform group-hover:scale-[1.01] transition-transform" />
                                 <div className="absolute inset-0 bg-black/20 rounded-xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <p className="text-white font-medium bg-black/50 px-4 py-2 rounded-full backdrop-blur-sm">Change Photo</p>
+                                    <p className="text-white font-medium bg-black/50 px-4 py-2 rounded-full backdrop-blur-sm">{t.changePhoto}</p>
                                 </div>
                             </div>
                         ) : (
@@ -176,8 +157,13 @@ const LandAnalysis = () => {
                                     <Upload className="w-10 h-10 text-emerald-600" />
                                 </div>
                                 <div>
-                                    <p className="text-slate-900 font-bold text-lg mb-1">Upload Land Photo</p>
-                                    <p className="text-slate-500 text-sm max-w-xs mx-auto">Take a clear picture of your soil/farm for AI-powered analysis.</p>
+                                    <p className="text-slate-900 font-bold text-lg mb-1">{t.uploadLandPhoto}</p>
+                                    <p className="text-slate-500 text-sm max-w-xs mx-auto">{t.uploadLandPhotoDesc}</p>
+                                </div>
+                                <div className="flex flex-wrap gap-2 justify-center text-xs text-slate-400">
+                                    <span className="px-2 py-1 bg-white/60 rounded-lg border border-slate-200">📸 {t.cameraPhoto}</span>
+                                    <span className="px-2 py-1 bg-white/60 rounded-lg border border-slate-200">🖼️ {t.galleryImage}</span>
+                                    <span className="px-2 py-1 bg-white/60 rounded-lg border border-slate-200">🔍 {t.soilCloseUp}</span>
                                 </div>
                             </div>
                         )}
@@ -199,14 +185,24 @@ const LandAnalysis = () => {
                             {isAnalyzing ? (
                                 <>
                                     <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                                    Analyzing Soil & Geography...
+                                    {t.aiAnalyzingLand}
                                 </>
                             ) : (
                                 <>
                                     <ScanLine className="w-5 h-5 mr-2" />
-                                    Generate Report
+                                    {t.analyzeLandWithAI}
                                 </>
                             )}
+                        </Button>
+                    )}
+
+                    {analysisResult && (
+                        <Button
+                            onClick={() => { setAnalysisResult(null); setSelectedImage(null); setSelectedFile(null); }}
+                            variant="outline"
+                            className="w-full rounded-2xl py-5 border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+                        >
+                            {t.analyzeAnotherPhoto}
                         </Button>
                     )}
                 </motion.div>
@@ -226,7 +222,7 @@ const LandAnalysis = () => {
                                 <div className="relative z-10">
                                     <div className="flex items-start justify-between mb-6">
                                         <div>
-                                            <p className="text-emerald-100 font-medium mb-1 flex items-center gap-2"><CheckCircle2 className="w-4 h-4" /> Analysis Complete</p>
+                                            <p className="text-emerald-100 font-medium mb-1 flex items-center gap-2"><CheckCircle2 className="w-4 h-4" /> {t.aiAnalysisComplete}</p>
                                             <h2 className="text-3xl font-bold tracking-tight">{analysisResult.soilType}</h2>
                                         </div>
                                         <div className="bg-white/20 p-2.5 rounded-2xl backdrop-blur-md shadow-sm border border-white/10">
@@ -235,22 +231,41 @@ const LandAnalysis = () => {
                                     </div>
                                     <div className="flex flex-wrap gap-3">
                                         <div className="inline-flex items-center gap-2 bg-black/20 px-3 py-1.5 rounded-full text-sm backdrop-blur-md border border-white/10">
-                                            <span>pH: <strong>{analysisResult.phLevel}</strong></span>
+                                            <span>{t.phLabel}: <strong>{analysisResult.phLevel}</strong></span>
                                         </div>
                                         <div className="inline-flex items-center gap-2 bg-black/20 px-3 py-1.5 rounded-full text-sm backdrop-blur-md border border-white/10">
-                                            <span>Organic C: <strong>{analysisResult.organicCarbon}</strong></span>
+                                            <span>{t.organicCarbonLabel}: <strong>{analysisResult.organicCarbon}</strong></span>
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
+                            {/* Improvements */}
+                            {analysisResult.improvements && analysisResult.improvements.length > 0 && (
+                                <div className="bg-white/90 backdrop-blur-sm rounded-3xl p-6 border border-blue-100 shadow-sm">
+                                    <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                                        <AlertCircle className="w-5 h-5 text-blue-600" /> {t.improveLandTitle}
+                                    </h3>
+                                    <ul className="space-y-3">
+                                        {analysisResult.improvements.map((tip, i) => (
+                                            <li key={i} className="flex gap-3 text-slate-700 text-sm">
+                                                <span className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xs font-bold flex-shrink-0">
+                                                    {i + 1}
+                                                </span>
+                                                <span className="pt-0.5">{tip}</span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
+
                             {/* Crop Recommendations */}
                             <div>
                                 <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2 px-1">
-                                    <Leaf className="w-5 h-5 text-emerald-600" /> Best Suitable Crops
+                                    <Leaf className="w-5 h-5 text-emerald-600" /> {t.bestSuitableCrops}
                                 </h3>
                                 <div className="space-y-3">
-                                    {analysisResult.suitableCrops.map((crop: SuitableCrop, index: number) => (
+                                    {analysisResult.suitableCrops.map((crop: LandAnalysisResult['suitableCrops'][0], index: number) => (
                                         <motion.div
                                             key={index}
                                             initial={{ opacity: 0, x: -10 }}
@@ -266,7 +281,7 @@ const LandAnalysis = () => {
                                                     <div>
                                                         <h4 className="font-bold text-slate-900 text-lg">{crop.name}</h4>
                                                         <div className="flex items-center gap-2 text-xs">
-                                                            <span className="text-slate-500">Match:</span>
+                                                            <span className="text-slate-500">{t.aiMatchLabel}:</span>
                                                             <div className="w-24 h-1.5 bg-slate-100 rounded-full overflow-hidden">
                                                                 <div className="h-full bg-emerald-500 rounded-full" style={{ width: crop.match }}></div>
                                                             </div>
@@ -276,17 +291,17 @@ const LandAnalysis = () => {
                                                 </div>
                                                 <div className="text-right">
                                                     <div className="px-2 py-1 bg-emerald-50 text-emerald-700 text-xs font-bold rounded-lg uppercase tracking-wide">
-                                                        {crop.profit} Profit
+                                                        {crop.profit} {t.profitLabel}
                                                     </div>
                                                 </div>
                                             </div>
                                             <div className="grid grid-cols-2 gap-2 text-xs bg-slate-50 p-3 rounded-xl">
                                                 <div>
-                                                    <span className="text-slate-400 block mb-0.5">Exp. Yield</span>
+                                                    <span className="text-slate-400 block mb-0.5">{t.expYieldLabel}</span>
                                                     <span className="font-semibold text-slate-700">{crop.yield}</span>
                                                 </div>
                                                 <div>
-                                                    <span className="text-slate-400 block mb-0.5">Duration</span>
+                                                    <span className="text-slate-400 block mb-0.5">{t.durationLabel}</span>
                                                     <span className="font-semibold text-slate-700">{crop.duration}</span>
                                                 </div>
                                             </div>
@@ -298,22 +313,22 @@ const LandAnalysis = () => {
                             {/* Financial Analysis */}
                             <div className="bg-white/90 backdrop-blur-sm rounded-3xl p-6 border border-white/50 shadow-lg">
                                 <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-                                    <IndianRupee className="w-5 h-5 text-blue-600" /> Financial Projection
+                                    <IndianRupee className="w-5 h-5 text-blue-600" /> {t.financialProjection}
                                 </h3>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="p-4 bg-red-50/80 rounded-2xl border border-red-100">
-                                        <p className="text-xs text-red-500 uppercase font-bold tracking-wider mb-1">Costs</p>
+                                        <p className="text-xs text-red-500 uppercase font-bold tracking-wider mb-1">{t.investmentLabel}</p>
                                         <p className="text-lg font-bold text-red-700">{analysisResult.financials.estimatedCost}</p>
                                     </div>
                                     <div className="p-4 bg-emerald-50/80 rounded-2xl border border-emerald-100">
-                                        <p className="text-xs text-emerald-500 uppercase font-bold tracking-wider mb-1">Revenue</p>
+                                        <p className="text-xs text-emerald-500 uppercase font-bold tracking-wider mb-1">{t.revenueLabel}</p>
                                         <p className="text-lg font-bold text-emerald-700">{analysisResult.financials.estimatedRevenue}</p>
                                     </div>
                                     <div className="col-span-2 p-5 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl border border-blue-100 flex items-center justify-between">
                                         <div>
-                                            <p className="text-xs text-blue-500 uppercase font-bold tracking-wider mb-1">Net Profit Potential</p>
+                                            <p className="text-xs text-blue-500 uppercase font-bold tracking-wider mb-1">{t.netProfitPotential}</p>
                                             <p className="text-2xl font-bold text-blue-700">{analysisResult.financials.projectedProfit}</p>
-                                            <p className="text-xs text-blue-400 mt-1">ROI: {analysisResult.financials.roi}</p>
+                                            <p className="text-xs text-blue-400 mt-1">{t.roiLabel}: {analysisResult.financials.roi}</p>
                                         </div>
                                         <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-sm">
                                             <TrendingUp className="w-6 h-6 text-blue-600" />
@@ -325,7 +340,7 @@ const LandAnalysis = () => {
                             {/* Yield Tricks */}
                             <div className="bg-amber-50/90 backdrop-blur-sm rounded-3xl p-6 border border-amber-100 shadow-sm">
                                 <h3 className="text-lg font-bold text-amber-900 mb-4 flex items-center gap-2">
-                                    <AlertCircle className="w-5 h-5 text-amber-600" /> Yield Maximization Tricks
+                                    <AlertCircle className="w-5 h-5 text-amber-600" /> {t.yieldMaxTips}
                                 </h3>
                                 <ul className="space-y-4">
                                     {analysisResult.tricks.map((trick: string, i: number) => (

@@ -11,6 +11,8 @@ import AIAssistant from "./pages/AIAssistant";
 import WeatherDashboard from "./pages/WeatherDashboard";
 import AnalyticsDashboard from "./pages/AnalyticsDashboard";
 import LandAnalysis from "./pages/LandAnalysis";
+import Settings from "./pages/Settings";
+import VideoTest from "./pages/VideoTest";
 import NotFound from "./pages/NotFound";
 
 import FallingLeaves from "@/components/ui/FallingLeaves";
@@ -33,6 +35,8 @@ const App = () => (
           <Route path="/weather" element={<WeatherDashboard />} />
           <Route path="/analytics" element={<AnalyticsDashboard />} />
           <Route path="/land-analysis" element={<LandAnalysis />} />
+          <Route path="/settings" element={<Settings />} />
+          <Route path="/video-test" element={<VideoTest />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

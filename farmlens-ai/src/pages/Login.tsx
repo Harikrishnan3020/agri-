@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { motion, AnimatePresence, useMotionTemplate, useMotionValue } from "framer-motion";
 import { Leaf, User, Lock, ArrowRight, Eye, EyeOff, X, Mail, Smartphone, RefreshCw, CheckCircle, Globe, Hexagon, Star, MessageCircle, UploadCloud, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -27,9 +27,11 @@ const OTPModal = ({ onClose, onSuccess, initialContact = "" }: { onClose: () => 
         }
     }, [resendCooldown]);
 
+    const { t } = useAppStore();
+
     const handleSendOtp = async () => {
         if (!otpContact.trim()) {
-            toast.error('Please enter your email or phone number');
+            toast.error(t.pleaseEnterEmailPhone);
             return;
         }
         setIsSending(true);
@@ -42,7 +44,12 @@ const OTPModal = ({ onClose, onSuccess, initialContact = "" }: { onClose: () => 
         setStep('verify');
         setResendCooldown(30);
         // Show OTP in toast for demo (in production, this would be sent via email/SMS)
-        toast.success(`OTP sent from AgriYield@gmail.com! Code: ${code}`, { duration: 15000 });
+        toast.success(
+            t.otpSentFrom
+                .replace("{email}", "AgriYield@gmail.com")
+                .replace("{code}", code),
+            { duration: 15000 }
+        );
     };
 
     const handleOtpChange = (index: number, value: string) => {
@@ -68,7 +75,7 @@ const OTPModal = ({ onClose, onSuccess, initialContact = "" }: { onClose: () => 
     const handleVerifyOtp = () => {
         const enteredOtp = otp.join('');
         if (enteredOtp.length < 6) {
-            setOtpError('Please enter the complete 6-digit OTP');
+            setOtpError(t.otpCompleteRequired);
             return;
         }
         if (enteredOtp === generatedOtp) {
@@ -78,7 +85,7 @@ const OTPModal = ({ onClose, onSuccess, initialContact = "" }: { onClose: () => 
                 onClose();
             }, 1500);
         } else {
-            setOtpError('Invalid OTP. Please try again.');
+            setOtpError(t.otpInvalidTryAgain);
             setOtp(['', '', '', '', '', '']);
             document.getElementById('otp-0')?.focus();
         }
@@ -111,18 +118,18 @@ const OTPModal = ({ onClose, onSuccess, initialContact = "" }: { onClose: () => 
                                         <Smartphone className="w-6 h-6 text-white" />
                                     </div>
                                     <div>
-                                        <h2 className="text-xl font-bold text-gray-900 dark:text-white">Mobile OTP</h2>
-                                        <p className="text-sm text-gray-500">Quick & secure login</p>
+                                        <h2 className="text-xl font-bold text-gray-900 dark:text-white">{t.mobileOTP}</h2>
+                                        <p className="text-sm text-gray-500">{t.quickSecureLogin}</p>
                                     </div>
                                 </div>
                                 <div className="space-y-4">
                                     <div>
-                                        <Label htmlFor="otp-contact" className="text-sm font-medium">Email or Phone Number</Label>
+                                        <Label htmlFor="otp-contact" className="text-sm font-medium">{t.emailOrPhone}</Label>
                                         <div className="relative mt-1">
                                             <Mail className="absolute left-3 top-3.5 h-4 w-4 text-gray-400" />
                                             <Input
                                                 id="otp-contact"
-                                                placeholder="email@example.com or +91XXXXXXXXXX"
+                                                placeholder={t.emailOrPhonePlaceholder}
                                                 className="pl-9 h-11"
                                                 value={otpContact}
                                                 onChange={(e) => setOtpContact(e.target.value)}
@@ -138,9 +145,9 @@ const OTPModal = ({ onClose, onSuccess, initialContact = "" }: { onClose: () => 
                                         {isSending ? (
                                             <span className="flex items-center gap-2">
                                                 <Loader2 className="w-4 h-4 animate-spin" />
-                                                Sending OTP...
+                                                {t.sendingOTP}
                                             </span>
-                                        ) : 'Send OTP'}
+                                        ) : t.sendOTP}
                                     </Button>
                                 </div>
                             </motion.div>
@@ -152,8 +159,8 @@ const OTPModal = ({ onClose, onSuccess, initialContact = "" }: { onClose: () => 
                                     <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-3">
                                         <Mail className="w-8 h-8 text-emerald-600" />
                                     </div>
-                                    <h2 className="text-xl font-bold text-gray-900 dark:text-white">Enter OTP</h2>
-                                    <p className="text-sm text-gray-500 mt-1">Sent to <strong>{otpContact}</strong></p>
+                                    <h2 className="text-xl font-bold text-gray-900 dark:text-white">{t.enterOTP}</h2>
+                                    <p className="text-sm text-gray-500 mt-1">{t.sentTo} <strong>{otpContact}</strong></p>
                                 </div>
                                 <div className="flex gap-2 justify-center mb-4">
                                     {otp.map((digit, index) => (
@@ -176,14 +183,14 @@ const OTPModal = ({ onClose, onSuccess, initialContact = "" }: { onClose: () => 
                                     onClick={handleVerifyOtp}
                                     className="w-full h-11 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-semibold rounded-xl mb-3"
                                 >
-                                    Verify OTP
+                                    {t.verifyOTP}
                                 </Button>
                                 <div className="text-center">
                                     {resendCooldown > 0 ? (
-                                        <p className="text-sm text-gray-400">Resend in {resendCooldown}s</p>
+                                        <p className="text-sm text-gray-400">{t.resendIn.replace("{seconds}", resendCooldown.toString())}</p>
                                     ) : (
                                         <button onClick={handleSendOtp} className="text-sm text-emerald-600 hover:text-emerald-500 font-medium flex items-center gap-1 mx-auto">
-                                            <RefreshCw className="w-3.5 h-3.5" /> Resend OTP
+                                            <RefreshCw className="w-3.5 h-3.5" /> {t.resendOTP}
                                         </button>
                                     )}
                                 </div>
@@ -200,8 +207,8 @@ const OTPModal = ({ onClose, onSuccess, initialContact = "" }: { onClose: () => 
                                 >
                                     <CheckCircle className="w-10 h-10 text-emerald-600" />
                                 </motion.div>
-                                <h2 className="text-xl font-bold text-gray-900 dark:text-white">Verified! ✓</h2>
-                                <p className="text-sm text-gray-500 mt-1">Logging you in...</p>
+                                <h2 className="text-xl font-bold text-gray-900 dark:text-white">{t.verifiedCheck}</h2>
+                                <p className="text-sm text-gray-500 mt-1">{t.loggingYouIn}</p>
                             </motion.div>
                         )}
                     </AnimatePresence>
@@ -215,6 +222,7 @@ const OTPModal = ({ onClose, onSuccess, initialContact = "" }: { onClose: () => 
 // --- Premium 3D & Holographic Scenes ---
 
 const HolographicScan = () => {
+    const { t } = useAppStore();
     return (
         <div className="relative w-80 h-80 flex items-center justify-center perspective-1000">
             {/* 3D Scanning Base */}
@@ -276,7 +284,7 @@ const HolographicScan = () => {
                         transition={{ delay: i * 0.2 }}
                     >
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                        SCAN_0{i + 1}: {val}% MATCH
+                        {t.scanLabelPrefix}{i + 1}: {val}% {t.matchLabel}
                     </motion.div>
                 ))}
             </div>
@@ -285,6 +293,7 @@ const HolographicScan = () => {
 }
 
 const GlobalMarket = () => {
+    const { t } = useAppStore();
     return (
         <div className="relative w-80 h-80 flex items-center justify-center">
             {/* Digital Globe Skeleton */}
@@ -316,9 +325,9 @@ const GlobalMarket = () => {
 
             {/* Floating Market Tickers */}
             {[
-                { label: "WHEAT", val: "+2.4%", x: -80, y: -60 },
-                { label: "RICE", val: "+1.2%", x: 80, y: 40 },
-                { label: "CORN", val: "-0.5%", x: -60, y: 70 },
+                { label: t.wheatLabel, val: "+2.4%", x: -80, y: -60 },
+                { label: t.riceLabel, val: "+1.2%", x: 80, y: 40 },
+                { label: t.cornLabel, val: "-0.5%", x: -60, y: 70 },
             ].map((item, i) => (
                 <motion.div
                     key={i}
@@ -537,43 +546,11 @@ const PortfolioItem = ({
     </motion.div>
 );
 
-const PORTFOLIO_ITEMS = [
-    {
-        id: 1,
-        Scene: HolographicScan,
-        title: "Bio-Scanning AI",
-        desc: "Instant pathogen detection using our proprietary Neural-Agri™ engine. Diagnoses crops with 99.8% accuracy in partial lighting.",
-        color: "bg-emerald-500",
-    },
-    {
-        id: 2,
-        Scene: GlobalMarket,
-        title: "Global Trade Network",
-        desc: "Connect directly with verified industrial buyers. Real-time futures pricing and automated logistics handling.",
-        color: "bg-amber-500",
-    },
-    {
-        id: 3,
-        Scene: ConnectedCommunity,
-        title: "Elite Farmer's League",
-        desc: "Join the top 1% of cultivators. Compete in regional yield leaderboards and unlock exclusive government grants.",
-        color: "bg-purple-500",
-    },
-    {
-        id: 4,
-        Scene: SecurityShield,
-        title: "CropShield™ Protection",
-        desc: "Blockchain-verified insurance coverage. Parametric payouts triggered automatically by satellite weather data.",
-        color: "bg-blue-500",
-    }
-];
-
 const Login = () => {
     const navigate = useNavigate();
-    const { login } = useAppStore();
+    const { login, t } = useAppStore();
     const [showPassword, setShowPassword] = useState(false);
     const [activeSlide, setActiveSlide] = useState(0);
-    const [showOtpModal, setShowOtpModal] = useState(false);
 
     // Form State
     const [fullName, setFullName] = useState("");
@@ -582,18 +559,49 @@ const Login = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [errors, setErrors] = useState<{ name?: string; contact?: string; password?: string }>({});
 
+    const portfolioItems = useMemo(() => ([
+        {
+            id: 1,
+            Scene: HolographicScan,
+            title: t.bioScanningAiTitle,
+            desc: t.bioScanningAiDesc,
+            color: "bg-emerald-500",
+        },
+        {
+            id: 2,
+            Scene: GlobalMarket,
+            title: t.globalTradeTitle,
+            desc: t.globalTradeDesc,
+            color: "bg-amber-500",
+        },
+        {
+            id: 3,
+            Scene: ConnectedCommunity,
+            title: t.eliteFarmersLeagueTitle,
+            desc: t.eliteFarmersLeagueDesc,
+            color: "bg-purple-500",
+        },
+        {
+            id: 4,
+            Scene: SecurityShield,
+            title: t.cropShieldTitle,
+            desc: t.cropShieldDesc,
+            color: "bg-blue-500",
+        },
+    ]), [t]);
+
     const validate = () => {
         const newErrors: typeof errors = {};
-        if (!fullName.trim()) newErrors.name = "Name is required";
-        if (!contact.trim()) newErrors.contact = "Email or phone is required";
+        if (!fullName.trim()) newErrors.name = t.nameRequired;
+        if (!contact.trim()) newErrors.contact = t.contactRequired;
         else {
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             const phoneRegex = /^\+?[1-9]\d{6,14}$/;
             if (!emailRegex.test(contact) && !phoneRegex.test(contact))
-                newErrors.contact = "Enter a valid email or phone number";
+            newErrors.contact = t.validEmailOrPhone;
         }
-        if (!password) newErrors.password = "Password is required";
-        else if (password.length < 6) newErrors.password = "Password must be at least 6 characters";
+        if (!password) newErrors.password = t.passwordRequired;
+        else if (password.length < 6) newErrors.password = t.passwordMin;
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
@@ -605,14 +613,14 @@ const Login = () => {
         setIsLoading(true);
         // Instant login — no fake delay
         login(contact, fullName.trim());
-        toast.success(`Welcome, ${fullName.trim()}! 🌱`);
+        toast.success(t.welcomeUser.replace("{name}", fullName.trim()));
         navigate("/dashboard");
     };
 
     const handleOtpSuccess = (otpContact: string) => {
-        const name = otpContact.includes('@') ? otpContact.split('@')[0] : 'Farmer';
+        const name = otpContact.includes('@') ? otpContact.split('@')[0] : t.farmerLabel;
         login(otpContact, name);
-        toast.success(`Welcome, ${name}! 🌱 Logged in via OTP`);
+        toast.success(t.welcomeOtpUser.replace("{name}", name));
         navigate("/dashboard");
     };
 
@@ -641,13 +649,13 @@ const Login = () => {
                         {/* Header */}
                         <div className="mb-8">
                             <div className="flex items-center gap-3 mb-5">
-                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/20 text-white">
-                                    <Leaf className="w-6 h-6" />
+                                <div className="w-10 h-10 rounded-[12px] bg-[#10b981] flex items-center justify-center shadow-lg shadow-emerald-500/20 text-white">
+                                    <Leaf className="w-6 h-6" strokeWidth={2.5} />
                                 </div>
-                                <span className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-600 to-teal-500">AgriYield</span>
+                                <span className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-600 to-teal-500 font-sans tracking-tight">AgriYield</span>
                             </div>
-                            <h1 className="text-3xl font-bold text-foreground mb-2 tracking-tight">Welcome Back 👋</h1>
-                            <p className="text-muted-foreground">Sign in to your agricultural command center.</p>
+                            <h1 className="text-3xl font-bold text-foreground mb-2 tracking-tight">{t.welcomeBack}</h1>
+                            <p className="text-muted-foreground">{t.signInSubtitle}</p>
                         </div>
 
                         {/* Form */}
@@ -655,12 +663,12 @@ const Login = () => {
 
                             {/* Name */}
                             <div className="space-y-1">
-                                <Label htmlFor="fullName">Full Name</Label>
+                                <Label htmlFor="fullName">{t.fullName}</Label>
                                 <div className="relative group">
                                     <User className="absolute left-3 top-3.5 h-5 w-5 text-muted-foreground group-focus-within:text-emerald-600 transition-colors" />
                                     <Input
                                         id="fullName"
-                                        placeholder="e.g. Ravi Kumar"
+                                        placeholder={t.fullNamePlaceholder}
                                         className={`pl-10 h-12 bg-white/50 border-gray-200/50 focus:border-emerald-500/50 transition-all ${errors.name ? "border-red-400" : ""}`}
                                         value={fullName}
                                         onChange={(e) => { setFullName(e.target.value); setErrors(p => ({ ...p, name: undefined })); }}
@@ -671,12 +679,12 @@ const Login = () => {
 
                             {/* Email / Phone */}
                             <div className="space-y-1">
-                                <Label htmlFor="contact">Email or Phone</Label>
+                                <Label htmlFor="contact">{t.emailOrPhoneShort}</Label>
                                 <div className="relative group">
                                     <User className="absolute left-3 top-3.5 h-5 w-5 text-muted-foreground group-focus-within:text-emerald-600 transition-colors" />
                                     <Input
                                         id="contact"
-                                        placeholder="name@example.com or +91XXXXXXXXXX"
+                                        placeholder={t.emailOrPhonePlaceholder}
                                         className={`pl-10 h-12 bg-white/50 border-gray-200/50 focus:border-emerald-500/50 transition-all ${errors.contact ? "border-red-400" : ""}`}
                                         value={contact}
                                         onChange={(e) => { setContact(e.target.value); setErrors(p => ({ ...p, contact: undefined })); }}
@@ -688,14 +696,7 @@ const Login = () => {
                             {/* Password */}
                             <div className="space-y-1">
                                 <div className="flex justify-between items-center">
-                                    <Label htmlFor="password">Password</Label>
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowOtpModal(true)}
-                                        className="text-xs font-medium text-emerald-600 hover:text-emerald-500 transition-colors"
-                                    >
-                                        Forgot password?
-                                    </button>
+                                    <Label htmlFor="password">{t.passwordLabel}</Label>
                                 </div>
                                 <div className="relative group">
                                     <Lock className="absolute left-3 top-3.5 h-5 w-5 text-muted-foreground group-focus-within:text-emerald-600 transition-colors" />
@@ -732,57 +733,26 @@ const Login = () => {
                                                 animate={{ rotate: 360 }}
                                                 transition={{ duration: 0.8, repeat: Infinity, ease: "linear" }}
                                             />
-                                            Signing in...
+                                            {t.signingIn}
                                         </span>
                                     ) : (
                                         <span className="flex items-center gap-2">
-                                            Sign In <ArrowRight className="h-5 w-5" />
+                                            {t.signIn} <ArrowRight className="h-5 w-5" />
                                         </span>
                                     )}
                                 </Button>
                             </motion.div>
 
-                            {/* Divider */}
-                            <div className="relative my-2">
-                                <div className="absolute inset-0 flex items-center">
-                                    <span className="w-full border-t border-gray-200" />
-                                </div>
-                                <div className="relative flex justify-center text-xs uppercase tracking-wider">
-                                    <span className="bg-white px-4 text-muted-foreground font-medium">or continue with</span>
-                                </div>
-                            </div>
 
-                            {/* Alt login */}
-                            <div className="grid grid-cols-2 gap-3">
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    onClick={() => setShowOtpModal(true)}
-                                    className="h-11 border-gray-200 hover:border-emerald-200 hover:bg-emerald-50/50 transition-colors text-sm"
-                                >
-                                    <Smartphone className="w-4 h-4 mr-2 text-emerald-600" /> Mobile OTP
-                                </Button>
-                                <Button type="button" variant="outline" className="h-11 border-gray-200 hover:border-emerald-200 hover:bg-emerald-50/50 transition-colors text-sm">
-                                    <UploadCloud className="w-4 h-4 mr-2 text-emerald-600" /> Passkey
-                                </Button>
-                            </div>
                         </form>
                     </SpotlightToogle>
 
                     <p className="text-center mt-6 text-sm text-muted-foreground">
-                        Don't have an account? <Link to="/register" className="text-emerald-600 font-semibold hover:underline">Apply for Access</Link>
+                        {t.noAccountQuestion} <Link to="/register" className="text-emerald-600 font-semibold hover:underline">{t.applyForAccess}</Link>
                     </p>
                 </motion.div>
             </div>
 
-            {/* OTP Modal */}
-            {showOtpModal && (
-                <OTPModal
-                    onClose={() => setShowOtpModal(false)}
-                    onSuccess={handleOtpSuccess}
-                    initialContact={contact}
-                />
-            )}
 
             {/* Right: Premium Animation Portfolio */}
             <div className="hidden lg:block lg:w-1/2 relative bg-[#050505] overflow-hidden">
@@ -820,15 +790,15 @@ const Login = () => {
                         <div className="w-full h-full flex items-center justify-center perspective-1000">
                             <AnimatePresence mode="wait">
                                 <PortfolioItem
-                                    key={PORTFOLIO_ITEMS[activeSlide].id}
-                                    {...PORTFOLIO_ITEMS[activeSlide]}
+                                    key={portfolioItems[activeSlide].id}
+                                    {...portfolioItems[activeSlide]}
                                 />
                             </AnimatePresence>
                         </div>
 
                         {/* Progress / Navigation */}
                         <div className="absolute bottom-12 left-0 right-0 flex justify-center items-center space-x-4 z-20">
-                            {PORTFOLIO_ITEMS.map((_, index) => (
+                            {portfolioItems.map((_, index) => (
                                 <button
                                     key={index}
                                     onClick={() => setActiveSlide(index)}

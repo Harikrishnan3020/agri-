@@ -347,7 +347,7 @@ const HeroSection = ({ onScanClick, className, autoStartCamera, onCameraStarted 
                       animate={{ opacity: [1, 0.3, 1], scale: [1, 0.8, 1] }}
                       transition={{ duration: 1, repeat: Infinity }}
                     />
-                    <span className="text-xs font-semibold text-emerald-300">Ready to Diagnose</span>
+                    <span className="text-xs font-semibold text-emerald-300">{t.readyToDiagnose}</span>
                   </div>
                 </div>
               </div>
@@ -491,7 +491,7 @@ const HeroSection = ({ onScanClick, className, autoStartCamera, onCameraStarted 
                 <div className="px-5 py-3 border-t border-emerald-500/10 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Activity className="w-3.5 h-3.5 text-emerald-400" />
-                    <span className="text-[11px] text-emerald-300/70 font-medium">Neural-Agri™ CV</span>
+                    <span className="text-[11px] text-emerald-300/70 font-medium">{t.neuralAgriCV}</span>
                   </div>
                   <motion.div
                     className="flex gap-1"

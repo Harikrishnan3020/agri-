@@ -24,80 +24,28 @@ import { Bell, Info, Calendar } from "lucide-react";
 import { PremiumPaywall } from "@/components/screens/PremiumPaywall";
 import { ProfileSection } from "@/components/screens/ProfileSection";
 import { useAppStore } from "@/store/useAppStore";
-import { analyzeCropImage } from "@/services/groq";
+import { verifyDiagnosis } from "@/services/diagnosisVerification";
+import { analyzeWithCustomModel } from "@/services/customModel";
+import { fetchListings, subscribeListings } from "@/services/marketplace";
 import heroImage from "@/assets/hero-farm.jpg";
 import { translations, LanguageCode } from "@/data/translations";
+import { toast } from "sonner";
 
 // Sample data
-const sampleDiagnosis: DiagnosisResult = {
-  disease: "Late Blight",
-  confidence: 98,
-  severity: "high",
-  treatment: "Spray Mancozeb 75% WP @ 2.5g/L immediately. Repeat after 7 days if symptoms persist.",
-  preventiveMeasures: [
-    "Remove and destroy infected plant parts",
-    "Improve field drainage to reduce humidity",
-    "Apply copper-based fungicide preventively",
-  ],
-  weather: {
-    humidity: 85,
-    temperature: 28,
-    condition: "Humid",
-  },
-  videoUrl: "https://www.youtube.com/embed/gE47Vd9gW1Y", // Sustainable Farming - America's Heartland
-};
-
-const sampleListings: MarketplaceListing[] = [
-  {
-    id: "1",
-    title: "Premium Rice Seedlings",
-    seller: "Ravi Ji Nursery",
-    price: 10,
-    unit: "bundle",
-    distance: "2km",
-    rating: 4.8,
-    isVerified: true,
-    deliveryAvailable: true,
-    category: "seeds",
-  },
-  {
-    id: "2",
-    title: "Mancozeb 75% WP",
-    seller: "Agro Chemicals Ltd",
-    price: 180,
-    unit: "kg",
-    distance: "5km",
-    rating: 4.6,
-    isVerified: true,
-    deliveryAvailable: true,
-    category: "pesticide",
-  },
-  {
-    id: "3",
-    title: "Organic Vermicompost",
-    seller: "Green Earth Farm",
-    price: 25,
-    unit: "kg",
-    distance: "3km",
-    rating: 4.9,
-    isVerified: false,
-    deliveryAvailable: false,
-    category: "fertilizer",
-  },
-];
-
-
-
 
 
 const Index = () => {
   const navigate = useNavigate();
-  const { activeTab, setActiveTab, showPremiumPaywall, setShowPremiumPaywall, isPremium, selectedLanguage, isAuthenticated, leaderboard, user, incrementScanCount, addScanRecord } = useAppStore();
+  const { activeTab, setActiveTab, showPremiumPaywall, setShowPremiumPaywall, isPremium, selectedLanguage, isAuthenticated, leaderboard, user, incrementScanCount, addScanRecord, listings, scanHistory, setListings, addListing } = useAppStore();
   const t = translations[selectedLanguage as LanguageCode] || translations.en;
+
+  // Use ONLY user listings (Real Data)
+  const allListings = listings || [];
 
   const [showResults, setShowResults] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
-  const [diagnosisResult, setDiagnosisResult] = useState<DiagnosisResult>(sampleDiagnosis); // Default to sample
+  const [diagnosisResult, setDiagnosisResult] = useState<DiagnosisResult | null>(null);
+  const [currentScanId, setCurrentScanId] = useState<string | null>(null);
 
   // Dynamic Seasonal Advice
   // Dynamic Seasonal Advice
@@ -189,62 +137,130 @@ const Index = () => {
     }
   }, [isAuthenticated, navigate]);
 
+  useEffect(() => {
+    let isCancelled = false;
+
+    const refreshListings = () => {
+      fetchListings()
+        .then((data) => {
+          if (!isCancelled) setListings(data);
+        })
+        .catch(() => {
+          // Keep existing listings if server is unavailable
+        });
+    };
+
+    refreshListings();
+
+    const intervalId = window.setInterval(refreshListings, 15000);
+    const unsubscribe = subscribeListings((listing) => {
+      addListing(listing);
+    });
+
+    return () => {
+      isCancelled = true;
+      window.clearInterval(intervalId);
+      unsubscribe();
+    };
+  }, [addListing, setListings]);
+
   const [autoStartCamera, setAutoStartCamera] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [scannedImage, setScannedImage] = useState<string | null>(null);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
 
   const handleScanClick = async (file?: File) => {
-    // Check for API key before starting
-    const apiKey = import.meta.env.VITE_GROQ_API_KEY;
-    if (!apiKey || apiKey.includes("YOUR_")) {
-      alert("⚠️ Configuration Missing\n\nPlease add your VITE_GROQ_API_KEY to the .env file.");
-      return;
-    }
     if (file) {
       const imageUrl = URL.createObjectURL(file);
       setScannedImage(imageUrl);
-
       setIsAnalyzing(true);
 
       try {
-        // Attempt to analyze with Groq
-        const result = await analyzeCropImage(file);
+        // Use multi-model verification system for accurate diagnosis
+        console.log("[Scan] Starting multi-model verification...");
+        
+        const verificationResult = await verifyDiagnosis(file);
+        
+        // Show warnings to user if any
+        if (verificationResult.warnings.length > 0) {
+          verificationResult.warnings.forEach(warning => {
+            toast.info(warning, { duration: 5000 });
+          });
+        }
+        
+        // Log consensus level
+        console.log(`[Scan] Consensus: ${verificationResult.consensusLevel} (${verificationResult.confidence}% confidence)`);
+        
+        const result = verificationResult.finalDiagnosis;
 
         if (result) {
           setDiagnosisResult(result);
-          // Save real scan record to store
-          addScanRecord({
-            disease: result.disease,
-            crop: result.crop || "Unknown Crop",
-            severity: result.severity as "low" | "medium" | "high",
-            confidence: result.confidence,
-            isHealthy: result.disease.toLowerCase().includes("healthy"),
-          });
+
+          // Compress image for localStorage (avoid quota issues)
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            const img = new Image();
+            img.src = event.target?.result as string;
+            img.onload = () => {
+              const canvas = document.createElement('canvas');
+              const MAX_WIDTH = 500;
+              const scaleSize = MAX_WIDTH / img.width;
+              canvas.width = MAX_WIDTH;
+              canvas.height = img.height * scaleSize;
+              canvas.getContext('2d')?.drawImage(img, 0, 0, canvas.width, canvas.height);
+              const compressedBase64 = canvas.toDataURL('image/jpeg', 0.6);
+
+              const scanId = Date.now().toString();
+              setCurrentScanId(scanId);
+
+              // Manually create scan record with ID for feedback tracking
+              const newScan = {
+                id: scanId,
+                date: new Date().toISOString(),
+                disease: result.disease,
+                crop: result.crop || "Unknown Crop",
+                severity: result.severity as "low" | "medium" | "high",
+                confidence: result.confidence,
+                isHealthy: result.disease.toLowerCase().includes("healthy"),
+                imageUrl: compressedBase64,
+                description: result.treatment,
+                preventiveMeasures: result.preventiveMeasures
+              };
+
+              // Update store
+              addScanRecord({
+                disease: result.disease,
+                crop: result.crop || "Unknown Crop",
+                severity: result.severity as "low" | "medium" | "high",
+                confidence: result.confidence,
+                isHealthy: result.disease.toLowerCase().includes("healthy"),
+                imageUrl: compressedBase64,
+                description: result.treatment,
+                preventiveMeasures: result.preventiveMeasures
+              });
+            };
+          };
+          reader.readAsDataURL(file);
           incrementScanCount();
-        } else {
-          // No result returned
-          console.error("Analysis failed");
-          alert("Analysis failed. Please try again.");
+
           setIsAnalyzing(false);
-          return;
+          setShowResults(true);
+          setShowConfetti(true);
+          setTimeout(() => setShowConfetti(false), 3000);
+        } else {
+          throw new Error("No analysis result returned.");
         }
+
       } catch (error) {
-        console.error("Analysis failed:", error);
-        // Show specific error message if available
+        console.error("[Scan] Analysis failed:", error);
         const errorMessage = error instanceof Error ? error.message : "Unknown error";
-        alert(`Analysis failed: ${errorMessage}\n\nPlease check your API key and connection.`);
+        // Import toast at top if not already done — using window.alert as fallback
+        import("sonner").then(({ toast }) => {
+          toast.error(`Analysis failed: ${errorMessage}`);
+        });
         setIsAnalyzing(false);
-        return;
       }
-
-      setIsAnalyzing(false);
-      setShowResults(true);
-      setShowConfetti(true);
-      setTimeout(() => setShowConfetti(false), 3000);
-
     } else {
-      // No file uploaded - do nothing (wait for user action in HeroSection)
       console.log("No file selected for scan");
     }
   };
@@ -478,9 +494,11 @@ const Index = () => {
                 <ResultsCard
                   result={diagnosisResult}
                   imageUrl={scannedImage}
+                  scanId={currentScanId || undefined}
                   onTreatmentClick={() => navigate("/medicine", {
                     state: {
                       disease: diagnosisResult.disease,
+                      crop: diagnosisResult.crop,
                       treatment: diagnosisResult.treatment
                     }
                   })}
@@ -499,23 +517,33 @@ const Index = () => {
         );
 
       case "market": {
-        // Filter to show ONLY relevant products based on diagnosis
-        const relevantListings = diagnosisResult
-          ? sampleListings.filter((listing) => {
+        // Sort listings: User's listings and Relevant items first, then others
+        const sortedListings = [...allListings].sort((a, b) => {
+          // 1. User's own listings first
+          if (a.seller === user?.name) return -1;
+          if (b.seller === user?.name) return 1;
+
+          // 2. Relevant to diagnosis (if exists)
+          if (diagnosisResult) {
             const treatment = diagnosisResult.treatment.toLowerCase();
             const disease = diagnosisResult.disease.toLowerCase();
-            const title = listing.title.toLowerCase();
-            const category = listing.category.toLowerCase();
 
-            // Check if product is mentioned in treatment or matches disease type
-            return (
-              treatment.includes(title) ||
-              treatment.includes(category) ||
-              disease.includes(category) ||
-              title.includes(category)
-            );
-          })
-          : sampleListings; // Show all if no diagnosis
+            const isRelevant = (item: MarketplaceListing) => {
+              const title = item.title.toLowerCase();
+              const category = item.category.toLowerCase();
+              return treatment.includes(title) || treatment.includes(category) ||
+                disease.includes(category) || title.includes(category);
+            };
+
+            const aRel = isRelevant(a);
+            const bRel = isRelevant(b);
+
+            if (aRel && !bRel) return -1;
+            if (!aRel && bRel) return 1;
+          }
+
+          return 0;
+        });
 
         return (
           <motion.div
@@ -531,13 +559,13 @@ const Index = () => {
                   <div>
                     <h4 className="text-sm font-semibold text-emerald-800">{t.recommendedForCrop}</h4>
                     <p className="text-xs text-emerald-600 mt-0.5">
-                      {t.recommendedDesc} <strong>{diagnosisResult.disease}</strong>, {t.recommendedDesc2}
+                      {t.recommendedDesc} <strong>{diagnosisResult.disease}</strong>. {t.recommendedDesc2}
                     </p>
                   </div>
                 </div>
               </div>
             )}
-            <MarketplaceSection listings={relevantListings} />
+            <MarketplaceSection listings={sortedListings} />
           </motion.div>
         );
       }
@@ -624,7 +652,7 @@ const Index = () => {
                 </div>
                 <div>
                   <h4 className="font-semibold text-gray-900">{seasonalAdvice.title}</h4>
-                  <p className="text-sm text-gray-800 font-medium mt-1">Focus: {seasonalAdvice.crop}</p>
+                  <p className="text-sm text-gray-800 font-medium mt-1">{t.focusLabel}: {seasonalAdvice.crop}</p>
                   <p className="text-sm text-gray-600 mt-1">{seasonalAdvice.desc}</p>
                   <p className="text-xs text-emerald-700 mt-2 bg-emerald-200/50 p-1.5 rounded-lg">{seasonalAdvice.detail}</p>
                 </div>

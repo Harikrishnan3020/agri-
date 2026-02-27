@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type React from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -65,7 +65,7 @@ const WeatherDashboard = () => {
     const { user, selectedLanguage } = useAppStore();
     const t = translations[selectedLanguage as LanguageCode] || translations.en;
 
-    const [location, setLocation] = useState("Mannargudi, Tamil Nadu");
+    const [location, setLocation] = useState(t.defaultLocation);
     const [isEditingLocation, setIsEditingLocation] = useState(false);
     const [tempLocation, setTempLocation] = useState(location);
 
@@ -74,60 +74,116 @@ const WeatherDashboard = () => {
         setIsEditingLocation(false);
     };
 
-    // Mock weather data
-    const [weatherData] = useState<WeatherData>({
-        current: {
-            temp: 28,
-            feelsLike: 31,
-            humidity: 72,
-            windSpeed: 12,
-            pressure: 1013,
-            visibility: 10,
-            uvIndex: 6,
-            sunrise: "06:12 AM",
-            sunset: "06:45 PM",
-            condition: "Partly Cloudy",
-            icon: Cloud,
-        },
-        hourly: [
-            { time: "Now", temp: 28, rainChance: 0 },
-            { time: "2 PM", temp: 30, rainChance: 10 },
-            { time: "3 PM", temp: 31, rainChance: 0 },
-            { time: "4 PM", temp: 30, rainChance: 20 },
-            { time: "5 PM", temp: 29, rainChance: 30 },
-            { time: "6 PM", temp: 27, rainChance: 40 },
-            { time: "7 PM", temp: 26, rainChance: 60 },
-        ],
-        forecast: [
-            { day: "Today", temp: { high: 32, low: 24 }, condition: "Sunny", rainChance: 10, icon: Sun },
-            { day: "Thu", temp: { high: 30, low: 23 }, condition: "Cloudy", rainChance: 40, icon: Cloud },
-            { day: "Fri", temp: { high: 28, low: 22 }, condition: "Rainy", rainChance: 80, icon: CloudRain },
-            { day: "Sat", temp: { high: 29, low: 23 }, condition: "Cloudy", rainChance: 50, icon: Cloud },
-            { day: "Sun", temp: { high: 31, low: 24 }, condition: "Sunny", rainChance: 20, icon: Sun },
-            { day: "Mon", temp: { high: 32, low: 25 }, condition: "Sunny", rainChance: 10, icon: Sun },
-            { day: "Tue", temp: { high: 30, low: 24 }, condition: "Cloudy", rainChance: 30, icon: Cloud },
-        ],
-        farmingAdvice: [
-            {
-                title: "Irrigation Alert",
-                status: "warning",
-                description: "Soil moisture is adequate. Hold off irrigation for 24 hours due to expected rain.",
-                icon: Droplets,
+    // Dynamic Weather Data Generation based on season
+    const getSeasonalWeatherData = () => {
+        const month = new Date().getMonth(); // 0-11
+        const hour = new Date().getHours();
+
+        // Determine season: Winter(11-1), Pre-Monsoon(2-5), Monsoon(6-9), Post-Monsoon(10)
+        let season = "Winter";
+        if (month >= 2 && month <= 5) season = "Summer";
+        else if (month >= 6 && month <= 9) season = "Monsoon";
+        else if (month === 10) season = "Autumn";
+
+        const seasonLabel = season === "Winter"
+            ? t.seasonWinter
+            : season === "Summer"
+                ? t.seasonSummer
+                : season === "Monsoon"
+                    ? t.seasonMonsoon
+                    : t.seasonAutumn;
+
+        return {
+            current: {
+                temp: season === "Summer" ? 34 : season === "Winter" ? 22 : 28,
+                feelsLike: season === "Summer" ? 38 : season === "Winter" ? 21 : 31,
+                humidity: season === "Monsoon" ? 85 : season === "Summer" ? 45 : 60,
+                windSpeed: season === "Monsoon" ? 18 : 12,
+                pressure: 1010,
+                visibility: season === "Winter" && hour < 9 ? 2 : 10,
+                uvIndex: season === "Summer" && (hour > 10 && hour < 16) ? 9 : 4,
+                sunrise: t.sunriseTime,
+                sunset: t.sunsetTime,
+                condition: season === "Monsoon" ? t.conditionRainy : season === "Summer" ? t.conditionSunny : t.conditionPartlyCloudy,
+                icon: season === "Monsoon" ? CloudRain : season === "Summer" ? Sun : Cloud,
             },
-            {
-                title: "Pesticide Window",
-                status: "safe",
-                description: "Ideal conditions for spraying between 2 PM - 5 PM. Wind speed is low.",
-                icon: Sprout,
-            },
-            {
-                title: "Fungal Risk",
-                status: "danger",
-                description: "Humidity > 85% expected tonight. Preventive fungicide application recommended.",
-                icon: AlertTriangle,
-            },
-        ],
-    });
+            hourly: Array.from({ length: 7 }, (_, i) => {
+                const h = (hour + i) % 24;
+                const isDay = h > 6 && h < 18;
+                const isPm = h >= 12;
+                const hour12 = h > 12 ? h - 12 : h === 0 ? 12 : h;
+                return {
+                    time: i === 0 ? t.now : `${hour12} ${isPm ? t.pm : t.am}`,
+                    temp: isDay ? (season === "Summer" ? 34 : 28) : (season === "Summer" ? 28 : 22),
+                    rainChance: season === "Monsoon" ? 60 + (i * 5) : 10
+                };
+            }),
+            forecast: Array.from({ length: 7 }, (_, i) => {
+                const date = new Date();
+                date.setDate(date.getDate() + i);
+                const dayName = date.toLocaleDateString(t.localeCode, { weekday: 'short' });
+                return {
+                    day: i === 0 ? t.today : dayName,
+                    temp: {
+                        high: season === "Summer" ? 38 : 30,
+                        low: season === "Summer" ? 28 : 22
+                    },
+                    condition: season === "Monsoon" ? t.conditionRainy : t.conditionSunny,
+                    rainChance: season === "Monsoon" ? 80 : 10,
+                    icon: season === "Monsoon" ? CloudRain : Sun
+                };
+            }),
+            farmingAdvice: [
+                {
+                    title: season === "Monsoon" ? t.drainageAlert : t.irrigationPlan,
+                    status: (season === "Monsoon" ? "danger" : "warning") as "safe" | "warning" | "danger",
+                    description: season === "Monsoon"
+                        ? t.drainageAlertDesc
+                        : t.irrigationPlanDesc,
+                    icon: Droplets,
+                },
+                {
+                    title: t.pestForecast,
+                    status: "warning" as "safe" | "warning" | "danger",
+                    description: season === "Winter"
+                        ? t.pestForecastDescWinter
+                        : t.pestForecastDescWarm,
+                    icon: AlertTriangle,
+                },
+                {
+                    title: t.sprayingGuide,
+                    status: "safe" as "safe" | "warning" | "danger",
+                    description: t.sprayingGuideDesc,
+                    icon: Sprout,
+                },
+            ],
+        };
+    };
+
+    const [weatherData] = useState<WeatherData>(getSeasonalWeatherData());
+
+    // Auto-detect location on mount
+    useEffect(() => {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    // For a real app, we would use a reverse geocoding API here
+                    // identifying location by coordinates for now to show "live" aspect
+                    const lat = position.coords.latitude.toFixed(4);
+                    const lon = position.coords.longitude.toFixed(4);
+                    // Mocking a reverse geocode for a better UX based on coords (usually requires API)
+                    // We'll show the coordinates as "Live Location" indicating it's active
+                    const locString = `${t.liveLocation} (${lat}, ${lon})`;
+                    setLocation(locString);
+                    setTempLocation(locString);
+                },
+                (error) => {
+                    console.error("Error getting location:", error);
+                    // Fallback or keep default
+                }
+            );
+        }
+    }, []);
 
     const getStatusColor = (status: "safe" | "warning" | "danger") => {
         switch (status) {
@@ -174,10 +230,10 @@ const WeatherDashboard = () => {
                     {isEditingLocation ? (
                         <div className="flex gap-2">
                             <Button onClick={handleLocationSave} size="sm" className="bg-emerald-600 text-white hover:bg-emerald-700 rounded-full h-8 px-3 text-xs">
-                                Save
+                                {t.save}
                             </Button>
                             <Button onClick={() => setIsEditingLocation(false)} variant="ghost" size="sm" className="rounded-full h-8 px-3 text-xs">
-                                Cancel
+                                {t.cancel}
                             </Button>
                         </div>
                     ) : (
@@ -226,8 +282,8 @@ const WeatherDashboard = () => {
                                     <p className="text-blue-100 text-xl font-medium flex items-center gap-3 mt-2">
                                         {weatherData.current.condition}
                                         <span className="w-1.5 h-1.5 rounded-full bg-blue-300/50"></span>
-                                        <span className="opacity-90">H: {weatherData.forecast[0].temp.high}°</span>
-                                        <span className="opacity-90">L: {weatherData.forecast[0].temp.low}°</span>
+                                        <span className="opacity-90">{t.highAbbrev} {weatherData.forecast[0].temp.high}°</span>
+                                        <span className="opacity-90">{t.lowAbbrev} {weatherData.forecast[0].temp.low}°</span>
                                     </p>
                                 </div>
                             </div>
@@ -238,7 +294,7 @@ const WeatherDashboard = () => {
                                         <Wind className="w-6 h-6 text-blue-200" />
                                         <div>
                                             <p className="text-xs text-blue-200 mb-0.5">{t.wind}</p>
-                                            <p className="text-sm font-bold">{weatherData.current.windSpeed} km/h</p>
+                                            <p className="text-sm font-bold">{weatherData.current.windSpeed} {t.kmPerHour}</p>
                                         </div>
                                     </div>
                                     <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/5 flex flex-col items-center justify-center gap-2 text-center transition-transform hover:scale-105">
@@ -252,7 +308,7 @@ const WeatherDashboard = () => {
                                         <Gauge className="w-6 h-6 text-blue-200" />
                                         <div>
                                             <p className="text-xs text-blue-200 mb-0.5">{t.pressure}</p>
-                                            <p className="text-sm font-bold">{weatherData.current.pressure} hPa</p>
+                                            <p className="text-sm font-bold">{weatherData.current.pressure} {t.hPa}</p>
                                         </div>
                                     </div>
                                     <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/5 flex flex-col items-center justify-center gap-2 text-center transition-transform hover:scale-105">
@@ -295,7 +351,7 @@ const WeatherDashboard = () => {
                                     <Tooltip
                                         contentStyle={{ backgroundColor: '#1e293b', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', color: '#fff' }}
                                         itemStyle={{ color: '#93c5fd' }}
-                                        formatter={(value: number | string) => [`${value}°C`, 'Temp']}
+                                        formatter={(value: number | string) => [`${value}°C`, t.tempLabel]}
                                         cursor={{ stroke: 'rgba(255,255,255,0.2)', strokeWidth: 1, strokeDasharray: '4 4' }}
                                     />
                                     <Area
