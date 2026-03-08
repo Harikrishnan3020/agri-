@@ -148,102 +148,61 @@ const HeroSection = ({ onScanClick, className, autoStartCamera, onCameraStarted 
 
       {/* ── BACKGROUND LAYER ── */}
       <div className="absolute inset-0 pointer-events-none">
-        {/* Deep gradient base */}
-        <div className="absolute inset-0 bg-gradient-to-br from-[#0a1a0f] via-[#0d2318] to-[#071510]" />
+        {/* Light gradient base */}
+        <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, #f4fcfa 0%, #e0f6ef 60%, #4ae095 100%)" }} />
 
-        {/* Animated mesh gradient */}
-        <motion.div
-          className="absolute inset-0"
-          animate={{ opacity: [0.4, 0.7, 0.4] }}
-          transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-          style={{
-            background: "radial-gradient(ellipse 80% 60% at 50% 0%, rgba(16,185,129,0.18) 0%, transparent 70%)"
-          }}
-        />
-
-        {/* Large glowing orb - top right */}
+        {/* Floating soft colored orbs */}
         <motion.div
           className="absolute -top-32 -right-32 w-[500px] h-[500px] rounded-full"
           animate={{
             scale: [1, 1.15, 1],
-            opacity: [0.25, 0.45, 0.25],
+            opacity: [0.1, 0.2, 0.1],
           }}
           transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
           style={{
-            background: "radial-gradient(circle, rgba(16,185,129,0.5) 0%, rgba(5,150,105,0.2) 40%, transparent 70%)",
-            filter: "blur(40px)",
-          }}
-        />
-
-        {/* Large glowing orb - bottom left */}
-        <motion.div
-          className="absolute -bottom-40 -left-40 w-[450px] h-[450px] rounded-full"
-          animate={{
-            scale: [1.1, 1, 1.1],
-            opacity: [0.2, 0.4, 0.2],
-          }}
-          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 2 }}
-          style={{
-            background: "radial-gradient(circle, rgba(245,158,11,0.4) 0%, rgba(217,119,6,0.15) 40%, transparent 70%)",
-            filter: "blur(50px)",
-          }}
-        />
-
-        {/* Mid orb */}
-        <motion.div
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] rounded-full"
-          animate={{
-            scale: [1, 1.3, 1],
-            opacity: [0.05, 0.15, 0.05],
-          }}
-          transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-          style={{
-            background: "radial-gradient(circle, rgba(52,211,153,0.6) 0%, transparent 70%)",
+            background: "radial-gradient(circle, #34d399 0%, transparent 70%)",
             filter: "blur(60px)",
           }}
         />
 
-        {/* Floating leaf particles */}
-        {Array.from({ length: 12 }).map((_, i) => (
-          <motion.div
-            key={i}
-            className="absolute"
-            style={{
-              left: `${5 + i * 8}%`,
-              bottom: "-5%",
-            }}
-            animate={{
-              y: [0, -(600 + Math.random() * 300)],
-              x: [0, (i % 2 === 0 ? 1 : -1) * (20 + Math.random() * 40)],
-              rotate: [0, 360 * (i % 2 === 0 ? 1 : -1)],
-              opacity: [0, 0.6, 0.6, 0],
-            }}
-            transition={{
-              duration: 8 + i * 0.7,
-              delay: i * 0.5,
-              repeat: Infinity,
-              ease: "easeOut",
-            }}
-          >
-            <Leaf
-              style={{
-                width: 10 + (i % 4) * 5,
-                height: 10 + (i % 4) * 5,
-                color: i % 3 === 0 ? "rgba(16,185,129,0.5)" : i % 3 === 1 ? "rgba(52,211,153,0.4)" : "rgba(245,158,11,0.35)",
-              }}
-              strokeWidth={1.5}
-            />
-          </motion.div>
-        ))}
-
-        {/* Grid lines */}
-        <div
-          className="absolute inset-0 opacity-[0.04]"
+        {/* Left orb */}
+        <motion.div
+          className="absolute top-1/2 -left-20 w-[400px] h-[400px] rounded-full"
+          animate={{
+            scale: [1, 1.2, 1],
+            opacity: [0.1, 0.2, 0.1],
+          }}
+          transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
           style={{
-            backgroundImage: "linear-gradient(rgba(16,185,129,1) 1px, transparent 1px), linear-gradient(90deg, rgba(16,185,129,1) 1px, transparent 1px)",
-            backgroundSize: "60px 60px",
+            background: "radial-gradient(circle, #34d399 0%, transparent 70%)",
+            filter: "blur(60px)",
           }}
         />
+
+        {/* Floating particles */}
+        {Array.from({ length: 6 }).map((_, i) => (
+          <motion.div
+            key={i}
+            className="absolute rounded-full"
+            style={{
+              width: 12 + (i % 3) * 4,
+              height: 12 + (i % 3) * 4,
+              backgroundColor: i % 2 === 0 ? "#81e6c3" : "#f5d173",
+              left: `${10 + i * 15}%`,
+              top: `${20 + i * 10}%`,
+              opacity: 0.6
+            }}
+            animate={{
+              y: [0, -30, 0],
+              x: [0, (i % 2 === 0 ? 20 : -20), 0],
+            }}
+            transition={{
+              duration: 4 + i * 1.5,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }}
+          />
+        ))}
       </div>
 
       {/* ── MAIN CONTENT ── */}
@@ -254,22 +213,24 @@ const HeroSection = ({ onScanClick, className, autoStartCamera, onCameraStarted 
           initial={{ opacity: 0, y: -20, scale: 0.8 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ duration: 0.6, type: "spring", bounce: 0.4 }}
-          className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-6 border border-emerald-500/30 bg-emerald-500/10 backdrop-blur-sm"
+          className="inline-flex items-center gap-2 px-6 py-2 rounded-full mb-6 border border-emerald-500/20 bg-[#ecf7f1] shadow-sm"
         >
           <motion.div
             animate={{ rotate: [0, 20, -20, 0], scale: [1, 1.2, 1] }}
             transition={{ duration: 2.5, repeat: Infinity, repeatDelay: 2 }}
           >
-            <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+            <Sparkles className="w-4 h-4 text-emerald-500" />
           </motion.div>
-          <span className="text-xs font-bold tracking-widest uppercase text-emerald-300">
+          <span
+            className="text-sm font-semibold tracking-wide"
+            style={{
+              background: "linear-gradient(to right, #10b981 40%, #eab308 100%)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent"
+            }}
+          >
             {t.aiBadge}
           </span>
-          <motion.div
-            className="w-1.5 h-1.5 rounded-full bg-emerald-400"
-            animate={{ opacity: [1, 0, 1] }}
-            transition={{ duration: 1.2, repeat: Infinity }}
-          />
         </motion.div>
 
         {/* Headline */}
@@ -277,15 +238,20 @@ const HeroSection = ({ onScanClick, className, autoStartCamera, onCameraStarted 
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.15 }}
-          className="text-4xl sm:text-5xl font-extrabold mb-3 leading-[1.1] tracking-tight"
+          className="text-[3.5rem] sm:text-7xl font-extrabold mb-5 leading-[0.95] tracking-tighter max-w-[340px] sm:max-w-md"
         >
-          <span className="text-white">{t.heroTitle1}</span>
-          <br />
+          <span className="text-[#0a2d1c] block">{t.heroTitle1.split(' ').slice(0, 2).join(' ')}</span>
+          <span className="text-[#0a2d1c] block mb-1">{t.heroTitle1.split(' ').slice(2).join(' ')}</span>
+          <span className="text-[#32c974] block">{t.heroTitle2.split(' ').slice(0, 2).join(' ')}</span>
           <span
-            className="bg-clip-text text-transparent"
-            style={{ backgroundImage: "linear-gradient(135deg, #34d399 0%, #10b981 40%, #f59e0b 100%)" }}
+            className="block"
+            style={{
+              background: "linear-gradient(to right, #32c974 0%, #ebb634 100%)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent"
+            }}
           >
-            {t.heroTitle2}
+            {t.heroTitle2.split(' ').slice(2).join(' ')}
           </span>
         </motion.h1>
 
@@ -294,9 +260,9 @@ const HeroSection = ({ onScanClick, className, autoStartCamera, onCameraStarted 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.3 }}
-          className="text-sm sm:text-base text-emerald-100/60 mb-8 leading-relaxed max-w-xs"
+          className="text-lg sm:text-xl text-gray-600 mb-8 leading-relaxed max-w-sm font-medium px-2"
         >
-          {t.heroSubtitle}
+          One photo. Instant AI diagnosis. Expert treatment plans that have helped farmers <span className="text-emerald-500 font-bold">increase yields by 40%.</span>
         </motion.p>
 
         {/* ── HERO CARD ── */}
@@ -533,48 +499,30 @@ const HeroSection = ({ onScanClick, className, autoStartCamera, onCameraStarted 
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ delay: 0.6 }}
-              className="flex flex-col items-center gap-4 w-full"
+              className="flex flex-col items-center w-full px-6"
             >
-              <div className="flex gap-3 w-full">
+              <div className="w-full">
                 {/* Take Photo */}
                 <motion.button
                   onClick={startCamera}
                   whileHover={{ scale: 1.03 }}
                   whileTap={{ scale: 0.97 }}
-                  className="relative flex-1 h-14 rounded-2xl font-bold text-white text-sm overflow-hidden group"
-                  style={{ background: "linear-gradient(135deg, #10b981 0%, #059669 100%)" }}
+                  className="relative w-full h-16 rounded-[1.25rem] font-bold text-white text-[17px] overflow-hidden group shadow-xl shadow-emerald-500/20"
+                  style={{ background: "#3ac48c" }}
                 >
                   {/* Shimmer */}
                   <motion.div
                     className="absolute inset-0 opacity-0 group-hover:opacity-100"
-                    style={{ background: "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.15) 50%, transparent 100%)" }}
+                    style={{ background: "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.2) 50%, transparent 100%)" }}
                     animate={{ x: ["-100%", "100%"] }}
                     transition={{ duration: 1.2, repeat: Infinity, repeatDelay: 0.5 }}
                   />
-                  {/* Glow */}
-                  <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity"
-                    style={{ boxShadow: "0 0 30px rgba(16,185,129,0.5)" }} />
-                  <span className="relative flex items-center justify-center gap-2">
-                    <Camera className="w-5 h-5" />
-                    Take Photo
-                  </span>
-                </motion.button>
-
-                {/* Upload */}
-                <motion.button
-                  onClick={() => fileInputRef.current?.click()}
-                  whileHover={{ scale: 1.03 }}
-                  whileTap={{ scale: 0.97 }}
-                  className="relative flex-1 h-14 rounded-2xl font-bold text-emerald-300 text-sm border border-emerald-500/30 bg-emerald-500/10 backdrop-blur-sm overflow-hidden group hover:border-emerald-400/60 hover:bg-emerald-500/20 transition-all"
-                >
-                  <span className="relative flex items-center justify-center gap-2">
-                    <ImageIcon className="w-5 h-5" />
-                    Upload
+                  <span className="relative flex items-center justify-center gap-3">
+                    <Camera className="w-6 h-6" />
+                    Scan Your Crop Free
                   </span>
                 </motion.button>
               </div>
-
-              <p className="text-[11px] text-white/30">No signup required • Results in 3 seconds • 100% free</p>
             </motion.div>
           ) : (
             <motion.div
@@ -582,13 +530,13 @@ const HeroSection = ({ onScanClick, className, autoStartCamera, onCameraStarted 
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
-              className="flex flex-col items-center gap-3 w-full"
+              className="flex flex-col items-center gap-3 w-full px-6"
             >
               <motion.button
                 onClick={handleStartScan}
                 whileHover={{ scale: 1.04 }}
                 whileTap={{ scale: 0.96 }}
-                className="relative w-full h-14 rounded-2xl font-bold text-white text-base overflow-hidden group"
+                className="relative w-full h-16 rounded-[1.25rem] font-bold text-white text-[17px] overflow-hidden group shadow-xl shadow-emerald-500/20"
                 style={{ background: "linear-gradient(135deg, #10b981 0%, #059669 60%, #047857 100%)" }}
               >
                 <motion.div
@@ -597,17 +545,17 @@ const HeroSection = ({ onScanClick, className, autoStartCamera, onCameraStarted 
                   animate={{ x: ["-100%", "200%"] }}
                   transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 1 }}
                 />
-                <span className="relative flex items-center justify-center gap-2">
-                  <ScanLine className="w-5 h-5" />
+                <span className="relative flex items-center justify-center gap-3">
+                  <ScanLine className="w-6 h-6" />
                   Start AI Diagnosis
                 </span>
               </motion.button>
 
               <button
                 onClick={handleClearFile}
-                className="text-sm text-white/40 hover:text-red-400 transition-colors flex items-center gap-1"
+                className="text-sm text-gray-500 font-medium hover:text-emerald-600 transition-colors flex items-center gap-1 mt-2"
               >
-                <X className="w-3.5 h-3.5" />
+                <X className="w-4 h-4" />
                 Retake Photo
               </button>
             </motion.div>
@@ -623,36 +571,6 @@ const HeroSection = ({ onScanClick, className, autoStartCamera, onCameraStarted 
           onChange={handleFileChange}
           onClick={(e) => (e.target as HTMLInputElement).value = ''}
         />
-
-        {/* ── STATS ── */}
-        <motion.div
-          className="flex items-center justify-center gap-5 mt-10 w-full"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.9 }}
-        >
-          {stats.map((stat, i) => (
-            <motion.div
-              key={stat.label}
-              className="flex flex-col items-center gap-1 group cursor-default"
-              whileHover={{ y: -4, scale: 1.05 }}
-              transition={{ type: "spring", stiffness: 300 }}
-            >
-              <div className={`w-8 h-8 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center mb-1 shadow-lg`}>
-                <stat.icon className="w-4 h-4 text-white" />
-              </div>
-              <motion.span
-                className="text-xl font-extrabold text-white"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 1 + i * 0.1 }}
-              >
-                {stat.value}
-              </motion.span>
-              <span className="text-[10px] text-white/40 text-center leading-tight">{stat.label}</span>
-            </motion.div>
-          ))}
-        </motion.div>
       </div>
 
       {/* ── FULL SCREEN CAMERA ── */}

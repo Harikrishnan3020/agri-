@@ -9,8 +9,8 @@ import {
     ScanLine, BarChart3, Users, LucideIcon
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
-import { useAppStore } from "@/store/useAppStore";
-import { translations, LanguageCode } from "@/data/translations";
+import { useAppStore, type LeaderboardEntry } from "@/store/useAppStore";
+import { translations, LanguageCode, type Translation } from "@/data/translations";
 
 type LandingStrings = {
     navTechnology: string;
@@ -62,7 +62,6 @@ type LandingStrings = {
     footerRights: string;
 };
 
-type Translation = (typeof translations)[LanguageCode];
 
 const landingTranslations: Partial<Record<LanguageCode, LandingStrings>> = {
     en: {
@@ -323,36 +322,36 @@ const Navbar = ({ strings }: { strings: LandingStrings }) => {
     ];
 
     return (
-    <motion.nav
-        initial={{ y: -100 }}
-        animate={{ y: 0 }}
-        transition={{ duration: 0.6 }}
-        className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-4 bg-black/50 backdrop-blur-xl border-b border-white/10"
-    >
-        <div className="flex items-center gap-2">
-            <Link to="/" className="hover:opacity-80 transition-opacity">
-                <div className="w-9 h-9 rounded-[10px] bg-[#10b981] flex items-center justify-center shadow-lg shadow-emerald-500/20">
-                    <Leaf className="w-5 h-5 text-white" strokeWidth={2.5} />
-                </div>
-            </Link>
-            <span className="font-bold text-white tracking-tight text-lg underline-offset-4">AgriYield<span className="text-emerald-500">.AI</span></span>
-        </div>
-        <div className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-400">
-            {navLinks.map((item) => (
-                <a key={item.id} href={`#${item.id}`} className="hover:text-emerald-400 transition-colors">
-                    {item.label}
-                </a>
-            ))}
-        </div>
-        <div className="flex items-center gap-4">
-            <Link to="/login" className="hidden md:block text-sm font-medium text-white hover:text-emerald-400 transition-colors">{strings.navSignIn}</Link>
-            <Link to="/login">
-                <Button className="rounded-full bg-emerald-600 hover:bg-emerald-500 text-white font-medium px-6 shadow-lg shadow-emerald-500/20 active:scale-95 transition-all">
-                    {strings.navGetStarted}
-                </Button>
-            </Link>
-        </div>
-    </motion.nav>
+        <motion.nav
+            initial={{ y: -100 }}
+            animate={{ y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-4 bg-black/50 backdrop-blur-xl border-b border-white/10"
+        >
+            <div className="flex items-center gap-2">
+                <Link to="/" className="hover:opacity-80 transition-opacity">
+                    <div className="w-9 h-9 rounded-[10px] bg-[#10b981] flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                        <Leaf className="w-5 h-5 text-white" strokeWidth={2.5} />
+                    </div>
+                </Link>
+                <span className="font-bold text-white tracking-tight text-lg underline-offset-4">AgriYield<span className="text-emerald-500">.AI</span></span>
+            </div>
+            <div className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-400">
+                {navLinks.map((item) => (
+                    <a key={item.id} href={`#${item.id}`} className="hover:text-emerald-400 transition-colors">
+                        {item.label}
+                    </a>
+                ))}
+            </div>
+            <div className="flex items-center gap-4">
+                <Link to="/login" className="hidden md:block text-sm font-medium text-white hover:text-emerald-400 transition-colors">{strings.navSignIn}</Link>
+                <Link to="/login">
+                    <Button className="rounded-full bg-emerald-600 hover:bg-emerald-500 text-white font-medium px-6 shadow-lg shadow-emerald-500/20 active:scale-95 transition-all">
+                        {strings.navGetStarted}
+                    </Button>
+                </Link>
+            </div>
+        </motion.nav>
     );
 };
 
@@ -433,7 +432,7 @@ const Hero = ({ strings }: { strings: LandingStrings }) => {
     );
 };
 
-const BentoGrid = ({ strings, common, leaderboard }: { strings: LandingStrings; common: Translation; leaderboard: ReturnType<typeof useAppStore>["leaderboard"] }) => {
+const BentoGrid = ({ strings, common, leaderboard }: { strings: LandingStrings; common: Translation; leaderboard: LeaderboardEntry[] }) => {
     const topLeaderboard = leaderboard.slice(0, 3);
 
     return (
@@ -557,8 +556,8 @@ const BentoGrid = ({ strings, common, leaderboard }: { strings: LandingStrings; 
                                     LIVE
                                 </motion.div>
                             </div>
-                                <h3 className="text-xl font-bold text-white mb-1">{strings.growthIndexTitle}</h3>
-                                <p className="text-sm text-gray-500">{strings.growthIndexDesc}</p>
+                            <h3 className="text-xl font-bold text-white mb-1">{strings.growthIndexTitle}</h3>
+                            <p className="text-sm text-gray-500">{strings.growthIndexDesc}</p>
 
                             {/* Impact display */}
                             <div className="mt-3 flex items-baseline gap-2">
@@ -569,7 +568,7 @@ const BentoGrid = ({ strings, common, leaderboard }: { strings: LandingStrings; 
                                 >
                                     98.5%
                                 </motion.span>
-                                    <span className="text-xs text-emerald-400 font-semibold">▲ {strings.yieldRankLabel}</span>
+                                <span className="text-xs text-emerald-400 font-semibold">▲ {strings.yieldRankLabel}</span>
                             </div>
                         </div>
 

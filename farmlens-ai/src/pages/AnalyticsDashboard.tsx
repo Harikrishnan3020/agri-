@@ -52,8 +52,8 @@ const AnalyticsDashboard = () => {
     const navigate = useNavigate();
     const { user, scanHistory, t } = useAppStore();
     const [timeRange, setTimeRange] = useState<"week" | "month" | "year">("month");
-    
-    const MONTH_NAMES = [t.jan, t.feb, t.mar, t.apr, t.may, t.jun, t.jul, t.aug, t.sep, t.oct, t.nov, t.dec];
+
+    const MONTH_NAMES = MONTH_NAMES_EN;
 
     // ── Derived real analytics from scanHistory ──────────────────────────────
 
@@ -109,10 +109,10 @@ const AnalyticsDashboard = () => {
             .slice(0, 5)
             .map(([name, scans]) => ({ name, scans }));
 
-        return { filtered, totalScans, healthyScans, diseaseScans, avgConfidence, diseaseBreakdown, monthlyTrend, cropTypes };
-    }, [scanHistory, timeRange]);
+        return { filtered, totalScans, healthyScans, diseaseScans, avgConfidence, diseaseBreakdown, monthlyTrend, cropTypes, cropCounts };
+    }, [scanHistory, timeRange, MONTH_NAMES]);
 
-    const { filtered, totalScans, healthyScans, diseaseScans, avgConfidence, diseaseBreakdown, monthlyTrend, cropTypes } = analyticsData;
+    const { filtered, totalScans, healthyScans, diseaseScans, avgConfidence, diseaseBreakdown, monthlyTrend, cropTypes, cropCounts } = analyticsData;
 
     // Financial Data (Mocked for now)
     const financialData = useMemo(() => [
@@ -399,7 +399,7 @@ const AnalyticsDashboard = () => {
                                             <div>
                                                 <p className="font-semibold text-white text-sm">{crop.name}</p>
                                                 <p className="text-xs text-white/40">{crop.scans} {t.scan}{crop.scans !== 1 ? "s" : ""}</p>
-                            </div>
+                                            </div>
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <TrendingUp className="w-4 h-4 text-emerald-400" />
@@ -523,7 +523,7 @@ const AnalyticsDashboard = () => {
                                                         />
                                                     </div>
                                                 )}
-                                                
+
                                                 {/* Info */}
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex items-start justify-between gap-2 mb-1.5">
@@ -540,7 +540,7 @@ const AnalyticsDashboard = () => {
                                                             </span>
                                                         </div>
                                                     </div>
-                                                    
+
                                                     {/* Metadata */}
                                                     <div className="flex items-center gap-3 text-xs text-white/40 mb-2">
                                                         <div className="flex items-center gap-1">
@@ -552,15 +552,14 @@ const AnalyticsDashboard = () => {
                                                             <span>{scan.confidence}% {t.confidence}</span>
                                                         </div>
                                                     </div>
-                                                    
+
                                                     {/* Confidence Bar */}
                                                     <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
                                                         <div
-                                                            className={`h-full rounded-full transition-all ${
-                                                                scan.confidence >= 90 ? 'bg-emerald-500' :
+                                                            className={`h-full rounded-full transition-all ${scan.confidence >= 90 ? 'bg-emerald-500' :
                                                                 scan.confidence >= 75 ? 'bg-blue-500' :
-                                                                scan.confidence >= 60 ? 'bg-amber-500' : 'bg-red-500'
-                                                            }`}
+                                                                    scan.confidence >= 60 ? 'bg-amber-500' : 'bg-red-500'
+                                                                }`}
                                                             style={{ width: `${scan.confidence}%` }}
                                                         />
                                                     </div>
@@ -584,7 +583,7 @@ const AnalyticsDashboard = () => {
                                                             </p>
                                                         </div>
                                                     )}
-                                                    
+
                                                     {/* Preventive Measures */}
                                                     {scan.preventiveMeasures && scan.preventiveMeasures.length > 0 && (
                                                         <div>
@@ -597,7 +596,7 @@ const AnalyticsDashboard = () => {
                                                             <ul className="space-y-1">
                                                                 {scan.preventiveMeasures.slice(0, 3).map((measure, idx) => (
                                                                     <li key={idx} className="flex items-start gap-2 text-xs text-white/70">
-                                                                        <span className={`mt-1 w-1 h-1 rounded-full flex-shrink-0 ${severity.text}`} 
+                                                                        <span className={`mt-1 w-1 h-1 rounded-full flex-shrink-0 ${severity.text}`}
                                                                             style={{ backgroundColor: 'currentColor' }} />
                                                                         <span>{measure}</span>
                                                                     </li>
@@ -611,7 +610,7 @@ const AnalyticsDashboard = () => {
                                     </motion.div>
                                 );
                             })}
-                            
+
                             {/* Show More Indicator */}
                             {filtered.length > 10 && (
                                 <GlassPanel className="p-3 text-center">

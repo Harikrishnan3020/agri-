@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { MarketplaceListing } from "@/components/screens/Marketplace";
+import type { MarketplaceListing } from "@/types/marketplace";
 import { translations, LanguageCode } from "@/data/translations";
 
 interface UserData {
@@ -33,7 +33,7 @@ export interface ScanRecord {
   };
 }
 
-interface LeaderboardEntry {
+export interface LeaderboardEntry {
   rank: number;
   name: string;
   location: string;
@@ -257,7 +257,7 @@ export const useAppStore = create<AppState>()(
       // Settings
       notificationsEnabled: true,
       setNotificationsEnabled: (enabled) => set({ notificationsEnabled: enabled }),
-      
+
       darkMode: true,
       setDarkMode: (enabled) => set({ darkMode: enabled }),
 

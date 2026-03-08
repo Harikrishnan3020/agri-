@@ -164,6 +164,15 @@ const Index = () => {
     };
   }, [addListing, setListings]);
 
+  useEffect(() => {
+    if (activeTab === "scan") {
+      setShowResults(false);
+      setScannedImage(null);
+      setAutoStartCamera(true);
+      setActiveTab("home");
+    }
+  }, [activeTab, setActiveTab]);
+
   const [autoStartCamera, setAutoStartCamera] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [scannedImage, setScannedImage] = useState<string | null>(null);
@@ -178,19 +187,19 @@ const Index = () => {
       try {
         // Use multi-model verification system for accurate diagnosis
         console.log("[Scan] Starting multi-model verification...");
-        
+
         const verificationResult = await verifyDiagnosis(file);
-        
+
         // Show warnings to user if any
         if (verificationResult.warnings.length > 0) {
           verificationResult.warnings.forEach(warning => {
             toast.info(warning, { duration: 5000 });
           });
         }
-        
+
         // Log consensus level
         console.log(`[Scan] Consensus: ${verificationResult.consensusLevel} (${verificationResult.confidence}% confidence)`);
-        
+
         const result = verificationResult.finalDiagnosis;
 
         if (result) {
@@ -348,16 +357,16 @@ const Index = () => {
                 </motion.div>
 
                 {/* Hero background image */}
-                <div className="absolute inset-0 -z-10 overflow-hidden">
+                <div className="absolute inset-0 -z-10 overflow-hidden mix-blend-overlay opacity-10">
                   <motion.img
                     src={heroImage}
                     alt="Farm landscape"
-                    className="w-full h-full object-cover opacity-20"
+                    className="w-full h-full object-cover"
                     initial={{ scale: 1.1 }}
                     animate={{ scale: 1 }}
                     transition={{ duration: 10, ease: "easeOut" }}
                   />
-                  <div className="absolute inset-0 bg-hero-gradient" />
+                  <div className="absolute inset-0 bg-white/20" />
                 </div>
 
                 {/* Analysis Loading Overlay */}
@@ -591,11 +600,6 @@ const Index = () => {
         );
 
       case "scan":
-        // Trigger scan (camera) when tab is selected
-        setShowResults(false);
-        setScannedImage(null);
-        setAutoStartCamera(true);
-        setActiveTab("home");
         return null;
 
       default:
@@ -618,10 +622,7 @@ const Index = () => {
   };
 
   return (
-    <div className="relative min-h-screen overflow-x-hidden" style={{ background: "linear-gradient(160deg, #0a1a0f 0%, #0d2318 40%, #071510 100%)" }}>
-      {/* Floating particles background */}
-      <FloatingParticles count={10} />
-
+    <div className="relative min-h-screen overflow-x-hidden bg-[#e0f8f1]">
       {/* Confetti effect */}
       <ConfettiCanvas isActive={showConfetti} />
 

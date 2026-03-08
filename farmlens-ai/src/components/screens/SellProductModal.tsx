@@ -11,7 +11,7 @@ import { verifyProductImage } from "@/services/gemini";
 import { createListing } from "@/services/marketplace";
 import { toast } from "sonner";
 import { Loader2, Camera, Upload, CheckCircle, AlertTriangle } from "lucide-react";
-import type { MarketplaceListing } from "@/components/screens/Marketplace";
+import type { MarketplaceListing } from "@/types/marketplace";
 
 interface SellProductModalProps {
     isOpen: boolean;

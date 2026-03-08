@@ -598,7 +598,7 @@ const Login = () => {
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             const phoneRegex = /^\+?[1-9]\d{6,14}$/;
             if (!emailRegex.test(contact) && !phoneRegex.test(contact))
-            newErrors.contact = t.validEmailOrPhone;
+                newErrors.contact = t.validEmailOrPhone;
         }
         if (!password) newErrors.password = t.passwordRequired;
         else if (password.length < 6) newErrors.password = t.passwordMin;
@@ -626,10 +626,10 @@ const Login = () => {
 
     useEffect(() => {
         const interval = setInterval(() => {
-            setActiveSlide((prev) => (prev + 1) % PORTFOLIO_ITEMS.length);
+            setActiveSlide((prev) => (prev + 1) % portfolioItems.length);
         }, 8000);
         return () => clearInterval(interval);
-    }, []);
+    }, [portfolioItems.length]);
 
     return (
         <div className="min-h-screen w-full flex bg-background overflow-hidden relative font-sans selection:bg-emerald-500/30">

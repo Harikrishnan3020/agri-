@@ -183,6 +183,7 @@ const WeatherDashboard = () => {
                 }
             );
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const getStatusColor = (status: "safe" | "warning" | "danger") => {

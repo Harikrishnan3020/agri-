@@ -52,6 +52,7 @@ export const VideoPlayer = ({
     const searchQuery = `${cropName || ""} ${diseaseName} treatment guide`.trim();
 
     // When the prop changes (new scan result), reset and update
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => {
         const newId = initialVideoUrl ? extractVideoId(initialVideoUrl) : null;
         if (newId && newId !== videoId) {
@@ -65,6 +66,7 @@ export const VideoPlayer = ({
     }, [initialVideoUrl]);
 
     // If no initial URL, search via YouTube API service
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => {
         if (!initialVideoUrl && !videoId) {
             console.log(`[VideoPlayer] No initial URL, searching for: "${searchQuery}"`);
@@ -121,7 +123,7 @@ export const VideoPlayer = ({
                     </div>
                 )}
 
-                {/* ── Thumbnail with Watch Button (Better UX - always works) ── */}  
+                {/* ── Thumbnail with Watch Button (Better UX - always works) ── */}
                 {!isLoading && videoId && (
                     <div className="absolute inset-0 w-full h-full flex items-center justify-center group">
                         {/* Thumbnail background */}
@@ -135,10 +137,10 @@ export const VideoPlayer = ({
                         ) : (
                             <div className="absolute inset-0 bg-gradient-to-br from-emerald-900/60 via-emerald-950/80 to-black" />
                         )}
-                        
+
                         {/* Dark overlay */}
                         <div className="absolute inset-0 bg-black/40" />
-                        
+
                         {/* Content */}
                         <div className="relative z-10 flex flex-col items-center justify-center p-6 text-center">
                             {/* YouTube Icon */}
@@ -151,7 +153,7 @@ export const VideoPlayer = ({
                                     <Youtube className="w-11 h-11 text-white" fill="currentColor" />
                                 </div>
                             </motion.div>
-                            
+
                             {/* Title */}
                             <h3 className="text-white font-bold text-lg mb-2">
                                 How to Cure {diseaseName}
@@ -159,7 +161,7 @@ export const VideoPlayer = ({
                             <p className="text-white/70 text-sm mb-6 max-w-xs">
                                 Learn treatment methods and disease control techniques
                             </p>
-                            
+
                             {/* Watch Button */}
                             <motion.a
                                 href={`https://www.youtube.com/results?search_query=${encodeURIComponent(`${cropName || ''} ${diseaseName} how to cure treatment control`)}`}
@@ -173,7 +175,7 @@ export const VideoPlayer = ({
                                 Search YouTube for Cure
                                 <ExternalLink className="w-4 h-4" />
                             </motion.a>
-                            
+
                             {/* Alternative search link */}
                             <a
                                 href={`https://www.youtube.com/results?search_query=${encodeURIComponent(searchQuery)}`}

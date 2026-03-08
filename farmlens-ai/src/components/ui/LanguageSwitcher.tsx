@@ -32,12 +32,12 @@ const LanguageSwitcher = ({ value = "en", onChange, className }: LanguageSwitche
     <div className={cn("relative", className)}>
       <motion.button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-3 py-2 rounded-xl bg-card/80 backdrop-blur-lg border border-white/30 text-sm font-medium text-foreground"
-        whileHover={{ scale: 1.02 }}
-        whileTap={{ scale: 0.98 }}
+        className="flex items-center gap-2 px-4 py-2.5 h-11 rounded-2xl bg-white shadow-sm text-[15px] font-bold text-gray-800 hover:shadow-md transition-all"
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
       >
-        <Globe className="w-4 h-4 text-primary" />
-        <span>{currentLang.native}</span>
+        <Globe className="w-5 h-5 text-[#10b981]" />
+        <span>{currentLang.name}</span>
       </motion.button>
 
       <AnimatePresence>

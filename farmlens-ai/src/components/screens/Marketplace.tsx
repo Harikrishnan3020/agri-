@@ -4,21 +4,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/store/useAppStore";
 import { translations, LanguageCode } from "@/data/translations";
-
-interface MarketplaceListing {
-  id: string;
-  title: string;
-  seller: string;
-  price: number;
-  unit: string;
-  distance: string;
-  rating: number;
-  image?: string;
-  isVerified?: boolean;
-  deliveryAvailable?: boolean;
-  description?: string;
-  category: "seeds" | "fertilizer" | "pesticide" | "equipment" | "produce";
-}
+import type { MarketplaceListing } from "@/types/marketplace";
 
 interface MarketplaceCardProps {
   listing: MarketplaceListing;

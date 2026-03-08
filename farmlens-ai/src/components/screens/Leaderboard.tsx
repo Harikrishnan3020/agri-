@@ -14,7 +14,6 @@ export interface LeaderboardEntry {
   isCurrentUser?: boolean;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const Leaderboard = (_props?: { entries?: LeaderboardEntry[] }) => {
   const { leaderboard, selectedLanguage, user } = useAppStore();
   const t = translations[selectedLanguage as LanguageCode] || translations.en;

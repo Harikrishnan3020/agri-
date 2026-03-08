@@ -125,7 +125,7 @@ const keywordMatch = (query: string): string => {
 // ── YouTube Data API v3 Search with Verification ────────────────────────────
 const searchYouTubeAPI = async (query: string): Promise<string | null> => {
     const API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY;
-    
+
     if (!API_KEY || API_KEY.includes("YOUR_")) {
         console.log("[YouTube API] No valid API key found");
         return null;
@@ -135,12 +135,12 @@ const searchYouTubeAPI = async (query: string): Promise<string | null> => {
         // Enhance query to focus on treatment/cure/control videos
         const enhancedQuery = `${query} how to treat cure control prevention organic fungicide`.trim();
         const searchQuery = encodeURIComponent(enhancedQuery);
-        
+
         // Search with agricultural focus - prioritize educational channels
         const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${searchQuery}&key=${API_KEY}&type=video&maxResults=15&videoEmbeddable=true&videoSyndicated=true&relevanceLanguage=en&safeSearch=none&videoDuration=medium&order=relevance`;
-        
+
         console.log(`[YouTube API] Searching for: "${enhancedQuery}"`);
-        
+
         const response = await fetch(url, {
             signal: AbortSignal.timeout(10000),
         });
@@ -152,42 +152,44 @@ const searchYouTubeAPI = async (query: string): Promise<string | null> => {
         }
 
         const data = await response.json();
-        
+
         if (data.items && data.items.length > 0) {
             // Filter for educational/agricultural channels
             const educationalKeywords = ['extension', 'university', 'agriculture', 'farming', 'organic', 'treatment', 'control', 'disease', 'management', 'guide'];
-            
+
             // Score videos based on title relevance
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const scoredVideos = data.items.map((item: any) => {
                 const title = item.snippet.title.toLowerCase();
                 const channelTitle = item.snippet.channelTitle.toLowerCase();
                 let score = 0;
-                
+
                 // Boost educational sources
                 if (educationalKeywords.some(kw => title.includes(kw) || channelTitle.includes(kw))) {
                     score += 10;
                 }
-                
+
                 // Boost if contains "treatment", "cure", "control"
                 if (title.includes('treatment') || title.includes('cure') || title.includes('control')) {
                     score += 5;
                 }
-                
+
                 // Boost if contains "how to"
                 if (title.includes('how to')) {
                     score += 3;
                 }
-                
+
                 return { ...item, score };
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
             }).sort((a: any, b: any) => b.score - a.score);
-            
+
             // Try top scored videos
             for (let i = 0; i < Math.min(5, scoredVideos.length); i++) {
                 const videoId = scoredVideos[i].id.videoId;
                 const videoTitle = scoredVideos[i].snippet.title;
-                
+
                 console.log(`[YouTube API] Testing video (score: ${scoredVideos[i].score}): "${videoTitle}" (${videoId})`);
-                
+
                 // For disease treatment videos, we'll just return the video ID
                 // and let users click "Watch on YouTube" to see it
                 // This avoids embedding restrictions
@@ -211,9 +213,9 @@ const verifyVideoEmbeddable = async (videoId: string, apiKey: string): Promise<b
         const response = await fetch(url, {
             signal: AbortSignal.timeout(3000),
         });
-        
+
         if (!response.ok) return false;
-        
+
         const data = await response.json();
         if (data.items && data.items.length > 0) {
             const status = data.items[0].status;

@@ -30,85 +30,70 @@ const Header = ({
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
       className={cn(
-        "sticky top-0 z-30 px-4 py-3 backdrop-blur-xl border-b border-emerald-500/10",
+        "sticky top-0 z-30 px-4 py-3 bg-transparent",
         className
       )}
-      style={{ background: "rgba(7,21,10,0.85)" }}
     >
       <div className="flex items-center justify-between max-w-md mx-auto">
         {/* Logo & Welcome */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <Link to="/">
             <motion.div
-              className="w-10 h-10 rounded-[12px] bg-[#10b981] flex items-center justify-center shadow-lg shadow-emerald-500/20"
+              className="w-12 h-12 rounded-2xl bg-[#10b981] flex items-center justify-center shadow-lg shadow-emerald-500/20"
               whileHover={{ rotate: 10, scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
               <Leaf className="w-6 h-6 text-white" strokeWidth={2.5} />
             </motion.div>
           </Link>
-          <div>
-            <div className="flex items-center gap-1.5">
-              <h1 className="font-bold text-white">AgriYield</h1>
+          <div className="flex flex-col justify-center">
+            <div className="flex items-center gap-1.5 leading-tight">
+              <h1 className="text-xl font-extrabold text-[#0a2d1c]">AgriYield</h1>
               {isPremium && (
                 <motion.span
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
-                  className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-gradient-to-r from-emerald-400 to-teal-500 text-2xs text-white font-bold tracking-wider"
+                  className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-gradient-to-r from-emerald-400 to-teal-500 text-[10px] text-white font-bold tracking-wider"
                 >
                   <Sparkles className="w-2.5 h-2.5" />
                   {t.eliteBadge}
                 </motion.span>
               )}
             </div>
-            <p className="text-2xs text-emerald-400/70">
+            <p className="text-sm font-medium text-gray-500 leading-tight">
               {t.helloUser.replace("{name}", userName)}
             </p>
           </div>
         </div>
 
-        {/* Actions */}
-        <div className="flex items-center gap-2">
+        {/* Actions - Using White background to match design */}
+        <div className="flex items-center gap-3">
           <LanguageSwitcher
             value={selectedLanguage}
             onChange={setLanguage}
           />
 
-          <Link to="/login">
-            <motion.button
-              className="w-10 h-10 rounded-xl backdrop-blur-lg border border-emerald-500/20 flex items-center justify-center text-emerald-300/60 hover:text-emerald-300 hover:border-emerald-500/40 transition-colors"
-              style={{ background: "rgba(16,185,129,0.08)" }}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              title={t.loginPageTitle}
-            >
-              <User className="w-4 h-4" />
-            </motion.button>
-          </Link>
-
           <motion.button
             onClick={onNotificationsClick}
-            className="relative w-10 h-10 rounded-xl backdrop-blur-lg border border-emerald-500/20 flex items-center justify-center text-emerald-300/60 hover:text-emerald-300 hover:border-emerald-500/40 transition-colors"
-            style={{ background: "rgba(16,185,129,0.08)" }}
+            className="relative w-11 h-11 rounded-2xl bg-white shadow-sm flex items-center justify-center text-gray-600 hover:text-emerald-600 hover:shadow-md transition-all"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
-            <Bell className="w-4 h-4" />
+            <Bell className="w-5 h-5" />
             <motion.span
-              className="absolute top-2 right-2 w-2 h-2 rounded-full bg-red-500"
-              animate={{ scale: [1, 1.3, 1], opacity: [1, 0.6, 1] }}
+              className="absolute top-2.5 right-2.5 w-2.5 h-2.5 rounded-full bg-red-500 border-2 border-white"
+              animate={{ scale: [1, 1.2, 1] }}
               transition={{ duration: 1.5, repeat: Infinity }}
             />
           </motion.button>
 
           <motion.button
             onClick={onSettingsClick}
-            className="w-10 h-10 rounded-xl backdrop-blur-lg border border-emerald-500/20 flex items-center justify-center text-emerald-300/60 hover:text-emerald-300 hover:border-emerald-500/40 transition-colors"
-            style={{ background: "rgba(16,185,129,0.08)" }}
+            className="w-11 h-11 rounded-2xl bg-white shadow-sm flex items-center justify-center text-gray-600 hover:text-emerald-600 hover:shadow-md transition-all"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
-            <Settings className="w-4 h-4" />
+            <Settings className="w-5 h-5" />
           </motion.button>
         </div>
       </div>

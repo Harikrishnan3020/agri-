@@ -1,0 +1,2 @@
+﻿src/pages/AnalyticsDashboard.tsx(424,82): error TS2304: Cannot find name 'cropCounts'.
+src/pages/Landing.tsx(436,146): error TS2339: Property 'leaderboard' does not exist on type '{}'.
